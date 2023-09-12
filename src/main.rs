@@ -8,16 +8,9 @@ use std::fs;
 fn main() {
     // Sample input string in your mini-language.
     let input_code = r#"
-        let x = 5;
-        let y = 10;
-        if (x == y) { 
-            x = x + y 
-        } else {
-            let z = 0;
-            while (z != 5) {
-                x = x + 1;
-            };
-        };
+        let tag = exec("git describe --tags --abbrev=0");
+        let major = exec("echo $tag");
+
     "#;
 
     // 1. Lexing the input.
@@ -28,6 +21,7 @@ fn main() {
     let mut parser = Parser::new(tokens);
     match parser.parse() {
         Ok(ast) => {
+            dbg!(ast.clone());
             // 3. Convert the AST to a Bash script.
             let bash_code = ast.to_bash();
 
@@ -37,6 +31,10 @@ fn main() {
             // Optionally, save the Bash script to a file.
             fs::write("output_script.sh", bash_code).expect("Unable to write to file");
         }
-        Err(e) => println!("Error: {}", e),
+        Err(e) => {
+            println!("Failed to parse input code.");
+            println!("Code: {}", input_code);
+            println!("Error: {}", e);
+        },
     }
 }

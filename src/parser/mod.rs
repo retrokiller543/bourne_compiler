@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use crate::lexer::{Operator, Token, Keyword};
 
 #[derive(Debug, Clone)]
@@ -26,6 +24,7 @@ pub enum ASTNode {
         condition: Box<ASTNode>,
         body: Box<ASTNode>,
     },
+    Exec { command: String },
     // Add other control structures as needed
 }
 
@@ -54,6 +53,9 @@ impl ASTNode {
             ASTNode::While { condition, body } => {
                 format!("while (( {} ));\ndo\n{}\ndone", condition.to_bash(), body.to_bash())
             },
+            ASTNode::Exec { command } => {
+                format!("$( {} )", command)
+            }
             // Handle other cases as needed
         }
     }
@@ -72,6 +74,44 @@ impl Operator {
         }
     }
 }
+
+macro_rules! parse_exec_statement {
+    ($self:ident) => {
+        if let Some(Token::Keyword(Keyword::Exec)) = $self.peek_next_token() {
+            let skip_positions;
+            let result;
+            match &$self.tokens[$self.position + 1] {
+                Token::OpenParen => {
+                    match &$self.tokens[$self.position + 2] {
+                        Token::String(command) => {
+                            if let Some(Token::CloseParen) = $self.tokens.get($self.position + 3) {
+                                skip_positions = 4; // Consume 'exec', OpenParen, String, and CloseParen
+                                result = Ok(ASTNode::Exec { command: command.clone() });
+                            } else {
+                                result = Err(format!("Expected ')' after string in 'exec', found {:?}", &$self.tokens[$self.position + 3]));
+                                skip_positions = 3; // Consume 'exec', OpenParen, and String
+                            }
+                        },
+                        _ => {
+                            result = Err(format!("Expected a string after 'exec(', found {:?}", &$self.tokens[$self.position + 2]));
+                            skip_positions = 3; // Consume 'exec', OpenParen, and expect CloseParen
+                        },
+                    }
+                },
+                _ => {
+                    skip_positions = 1; // Only consume 'exec'
+                    result = Err(format!("Expected '(' after 'exec', found {:?}", &$self.tokens[$self.position + 1]));
+                },
+            }
+            $self.position += skip_positions;
+            result
+        } else {
+            Err(format!("Expected 'exec' keyword, found {:?}", &$self.tokens[$self.position]))
+        }
+    };
+}
+
+
 
 macro_rules! parse_operator {
     ($self:ident) => {
@@ -262,6 +302,7 @@ impl Parser {
     fn statement(&mut self) -> Result<ASTNode, String> {
         let stmt = match self.peek_next_token() {
             Some(Token::Keyword(Keyword::Let)) => parse_variable_declaration!(self),
+            Some(Token::Keyword(Keyword::Exec)) => parse_exec_statement!(self),
             Some(Token::Keyword(Keyword::If)) => parse_if_statement!(self),
             Some(Token::Keyword(Keyword::While)) => parse_while_loop!(self),
             Some(Token::Number(_)) => self.expression(),
@@ -368,6 +409,10 @@ impl Parser {
             } else {
                 return Err(format!("Expected ')', found {:?}", self.peek_next_token()));
             }
+        }
+
+        if let Some(Token::Keyword(Keyword::Exec)) = self.peek_next_token() {
+            return parse_exec_statement!(self);
         }
 
         // Next, handle numbers and variables

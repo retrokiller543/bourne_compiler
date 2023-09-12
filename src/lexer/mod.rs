@@ -5,6 +5,7 @@
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token {
     Number(i32),
+    String(String),
     Operator(Operator),
     Identifier(String),
     Keyword(Keyword),
@@ -25,6 +26,9 @@ pub enum Keyword {
     For,
     Exit,
     Let,
+    Print,
+    Arg,
+    Exec,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -99,7 +103,19 @@ macro_rules! match_keyword {
             "let" => {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::Let)]
-            }
+            },
+            "print" => {
+                $chars = chars_copy;
+                vec![Token::Keyword(Keyword::Print)]
+            },
+            "arg" => {
+                $chars = chars_copy;
+                vec![Token::Keyword(Keyword::Arg)]
+            },
+            "exec" => {
+                $chars = chars_copy;
+                vec![Token::Keyword(Keyword::Exec)]
+            },
             
             _ => vec![],
         }
@@ -118,6 +134,26 @@ macro_rules! match_identifier {
         }
         if !identifier.is_empty() {
             vec![Token::Identifier(identifier)]
+        } else {
+            vec![]
+        }
+    }};
+}
+
+macro_rules! match_string {
+    ($chars:ident) => {{
+        let mut string_val = String::new();
+        if let Some(&'"') = $chars.peek() {
+            $chars.next(); // Consume the opening quote
+            while let Some(&ch) = $chars.peek() {
+                if ch != '"' {
+                    string_val.push($chars.next().unwrap());
+                } else {
+                    $chars.next(); // Consume the closing quote
+                    break;
+                }
+            }
+            vec![Token::String(string_val)]
         } else {
             vec![]
         }
@@ -148,6 +184,7 @@ macro_rules! match_token {
                 }
             }
             Some(&ch) => match ch {
+                '"' => match_string!($chars),
                 $($token_pattern => {
                     $chars.next();
                     vec![$token_expr.unwrap()]
@@ -217,7 +254,6 @@ mod tests {
             #[test]
             fn $name() {
                 let lexer = Lexer::new($input);
-                dbg!(lexer.lex());
                 assert_eq!(lexer.lex(), $expected_output);
             }
         };
@@ -350,5 +386,17 @@ mod tests {
         Token::EoL,
         Token::CloseBrace,
     ]);
+
+    test_lexer!(test_string, "\"Hello, World!\"", vec![
+    Token::String("Hello, World!".to_string())
+    ]);
+
+    test_lexer!(test_exec, "exec(\"ls\")", vec![
+        Token::Keyword(Keyword::Exec),
+        Token::OpenParen,
+        Token::String("ls".to_string()),
+        Token::CloseParen
+    ]);
+
 
 }
