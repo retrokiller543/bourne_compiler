@@ -16,7 +16,7 @@ fn main() {
         let z = x + y;
         print("Sum of x and y is:");
         print(z);
-        
+
         if z == 30
         {
             print("z is 30");
@@ -25,14 +25,14 @@ fn main() {
         {
             print("z is not 30");
         };
-        
-        while x != 0 
+
+        while x != 0
         {
             print("Counting down: ");
             print(x);
             x = x - 1;
         }
-        
+
         print("Done counting!");
     "#;
 

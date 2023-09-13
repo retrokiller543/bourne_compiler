@@ -20,18 +20,18 @@ The syntax of the mini-language designed here is similar to Rust and is describe
 ```m
 program     => statement*
 
-statement   => declaration 
-            | function_call 
-            | if_statement 
-            | while_loop 
+statement   => declaration
+            | function_call
+            | if_statement
+            | while_loop
             | expression EoL
 
 declaration => "let" Identifier ("=" expression)?
 
-function_call => BuiltInFunction "(" arguments? ")" 
+function_call => BuiltInFunction "(" arguments? ")"
               | Identifier "(" arguments? ")"
 
-if_statement  => "if" expression "{" statement* "}" 
+if_statement  => "if" expression "{" statement* "}"
                 ("else" "{" statement* "}")?
 
 while_loop   => "while" expression "{" statement* "}"
@@ -40,11 +40,11 @@ expression  => term (("+" | "-") term)*
 
 term        => factor (("*" | "/") factor)*
 
-factor      => "(" expression ")" 
-            | "-" factor 
-            | Number 
-            | StringLiteral 
-            | function_call 
+factor      => "(" expression ")"
+            | "-" factor
+            | Number
+            | StringLiteral
+            | function_call
             | Identifier
 
 arguments   => expression ("," expression)*
@@ -104,7 +104,7 @@ else
 
 print("Counting down: ");
 
-while x != 0 
+while x != 0
 {
     print(x);
     x = x - 1;

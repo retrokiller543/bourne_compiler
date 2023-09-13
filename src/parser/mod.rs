@@ -57,21 +57,17 @@ impl ASTNode {
                     right.to_bash()
                 )
             }
-            ASTNode::Assign { name, value } => {
-                match **value {
-                    ASTNode::BuiltInFunctionCall {
-                        name: BuiltInFunction::Exec,
-                        ref args,
-                    } => {
-                        match &args[0] {
-                            ASTNode::StringLiteral(s) => format!("{}=$({})", name, s),
-                            ASTNode::Variable(var_name) => format!("{}=$({})", name, var_name),
-                            _ => panic!("Invalid argument for Exec command!"),
-                        }
-                    }
-                    _ => format!("{}={}", name, value.to_bash()),
-                }
-            }
+            ASTNode::Assign { name, value } => match **value {
+                ASTNode::BuiltInFunctionCall {
+                    name: BuiltInFunction::Exec,
+                    ref args,
+                } => match &args[0] {
+                    ASTNode::StringLiteral(s) => format!("{}=$({})", name, s),
+                    ASTNode::Variable(var_name) => format!("{}=$({})", name, var_name),
+                    _ => panic!("Invalid argument for Exec command!"),
+                },
+                _ => format!("{}={}", name, value.to_bash()),
+            },
             ASTNode::Variable(name) => name.clone(),
             ASTNode::Number(n) => n.to_string(),
             ASTNode::If {
@@ -98,15 +94,13 @@ impl ASTNode {
             }
             ASTNode::BuiltInFunctionCall { name, args } => {
                 match name {
-                    BuiltInFunction::Exec => {
-                        match &args[0] {
-                            ASTNode::StringLiteral(s) => s.clone(),
-                            ASTNode::Variable(var_name) => {
-                                format!("${}", var_name)
-                            }
-                            _ => panic!("Invalid argument for Exec command!"),
+                    BuiltInFunction::Exec => match &args[0] {
+                        ASTNode::StringLiteral(s) => s.clone(),
+                        ASTNode::Variable(var_name) => {
+                            format!("${}", var_name)
                         }
-                    }
+                        _ => panic!("Invalid argument for Exec command!"),
+                    },
                     BuiltInFunction::Print => match &args[0] {
                         ASTNode::StringLiteral(s) => format!("echo {}", s),
                         ASTNode::Variable(name) => format!("echo ${}", name),
@@ -241,7 +235,7 @@ macro_rules! expect_token {
             Token::$token_variant(ref $val) => {
                 $self.position += 1;
                 Ok(ASTNode::$ast_node_variant($val.clone()))
-            },
+            }
             _ => Err(format!("Expected a {}", stringify!($token_variant))),
         }
     };
@@ -250,7 +244,7 @@ macro_rules! expect_token {
             Token::$token_variant => {
                 $self.position += 1;
                 Ok(ASTNode::$ast_node_variant)
-            },
+            }
             _ => Err(format!("Expected a {}", stringify!($token_variant))),
         }
     };
