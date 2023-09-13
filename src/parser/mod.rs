@@ -408,12 +408,12 @@ impl Parser {
         }
 
         // Parse arguments until a close parenthesis is found
-        while &self.tokens[self.position] != &Token::CloseParen {
+        while self.tokens[self.position] != Token::CloseParen {
             let expr = self.expression()?;
             args.push(expr);
 
             // If the next token is a comma, consume it and continue parsing the next argument
-            if &self.tokens[self.position] == &Token::Comma {
+            if self.tokens[self.position] == Token::Comma {
                 self.position += 1;
             }
         }
