@@ -2,6 +2,7 @@
 # Compiler Grammar
 
 ## Current Grammar
+
 $$
 \begin{align*}
 \text{program} & \to \text{statement}* \\
@@ -28,6 +29,11 @@ $$
 \end{align*}
 $$
 
+*If the LaTeX fails to load*
+
+![Current Grammer](./images/current_grammer.svg)
+
+---
 
 ## Goal for the Future
 
@@ -63,5 +69,11 @@ $$
 & | \text{Identifier} \\
 \text{arguments} & \to \text{expression} \, ("," \, \text{expression})*
 \end{align*}
-
 $$
+
+*If the LaTeX fails to load*
+
+![Current Grammer](./images/future_grammer.svg)
+
+
+---
