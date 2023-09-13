@@ -1,0 +1,5 @@
+BINARY_PATH=./target/release/bourne_compiler
+PACKAGE_NAME=bourne-compiler
+PACKAGE_VERSION=0.1.0
+PACKAGE_MAINTAINER=Tosic.Killer emil.schutt@gmail.com
+PACKAGE_DESCRIPTION=Compile from high lvl code to bash to make it easier to start learning bash

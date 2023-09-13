@@ -26,9 +26,10 @@ fn main() {
             print("z is not 30");
         };
 
+        print("Counting down: ");
+
         while x != 0
         {
-            print("Counting down: ");
             print(x);
             x = x - 1;
         }
