@@ -1,3 +1,6 @@
+// Code for the main function of the compiler.
+// Path: src/main.rs
+
 mod lexer;
 mod parser;
 use crate::lexer::Lexer;
@@ -28,7 +31,7 @@ fn main() {
             print("Counting down: ");
             print(x);
             x = x - 1;
-        };
+        }
         
         print("Done counting!");
     "#;

@@ -1,3 +1,7 @@
+// Module: parser
+// Purpose: parsing the tokens into an AST
+// Path: src/parser/mod.rs
+
 use crate::lexer::{BuiltInFunction, Keyword, Operator, Token};
 
 #[derive(Debug, Clone)]
