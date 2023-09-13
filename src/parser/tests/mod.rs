@@ -107,10 +107,17 @@ fn extract_binary_op(ast: &ASTNode) -> Option<(&Operator, &ASTNode, &ASTNode)> {
 
 fn extract_assign(ast: &ASTNode) -> Option<(String, &ASTNode)> {
     match ast {
-        ASTNode::Assign { ref name, ref value } => Some((name.clone(), &**value)),
+        ASTNode::Assign {
+            ref name,
+            ref value,
+        } => Some((name.clone(), &**value)),
         ASTNode::Program(stmts) => {
             if let ASTNode::Statement(ref inner) = &stmts[0] {
-                if let ASTNode::Assign { ref name, ref value } = **inner {
+                if let ASTNode::Assign {
+                    ref name,
+                    ref value,
+                } = **inner
+                {
                     return Some((name.clone(), &**value));
                 }
             }
@@ -179,29 +186,33 @@ ast_test!(test_variable_assign, "let x = 5;", |ast| {
     assert_eq!(num, 5);
 });
 
-ast_test!(test_if_statement, "if (x) { 5; } else { 3; };", |ast: &ASTNode| {
-    match ast {
-        ASTNode::Program(stmts) => match &stmts[0] {
-            ASTNode::Statement(ref inner) => match &**inner {
-                ASTNode::If {
-                    condition,
-                    body,
-                    else_body: Some(else_body),
-                } => {
-                    match &**condition {
-                        ASTNode::Variable(name) => assert_eq!(name, "x"),
-                        _ => panic!("Expected Variable in condition"),
+ast_test!(
+    test_if_statement,
+    "if (x) { 5; } else { 3; };",
+    |ast: &ASTNode| {
+        match ast {
+            ASTNode::Program(stmts) => match &stmts[0] {
+                ASTNode::Statement(ref inner) => match &**inner {
+                    ASTNode::If {
+                        condition,
+                        body,
+                        else_body: Some(else_body),
+                    } => {
+                        match &**condition {
+                            ASTNode::Variable(name) => assert_eq!(name, "x"),
+                            _ => panic!("Expected Variable in condition"),
+                        }
+                        assert_eq!(extract_number(&**body), Some(5));
+                        assert_eq!(extract_number(&**else_body), Some(3));
                     }
-                    assert_eq!(extract_number(&**body), Some(5));
-                    assert_eq!(extract_number(&**else_body), Some(3));
-                }
-                _ => panic!("Expected If ASTNode"),
+                    _ => panic!("Expected If ASTNode"),
+                },
+                _ => panic!("Expected Statement ASTNode"),
             },
-            _ => panic!("Expected Statement ASTNode"),
-        },
-        _ => panic!("Expected Program ASTNode"),
+            _ => panic!("Expected Program ASTNode"),
+        }
     }
-});
+);
 
 ast_test!(test_while_loop, "while (x) { 5; };", |ast: &ASTNode| {
     dbg!(ast);

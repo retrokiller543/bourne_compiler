@@ -85,19 +85,19 @@ macro_rules! match_builtin_function {
             "print" => {
                 $chars = chars_copy;
                 vec![Token::BuiltInFunction(BuiltInFunction::Print)]
-            },
+            }
             "arg" => {
                 $chars = chars_copy;
                 vec![Token::BuiltInFunction(BuiltInFunction::Arg)]
-            },
+            }
             "exec" => {
                 $chars = chars_copy;
                 vec![Token::BuiltInFunction(BuiltInFunction::Exec)]
-            },
+            }
             "exit" => {
                 $chars = chars_copy;
                 vec![Token::BuiltInFunction(BuiltInFunction::Exit)]
-            },
+            }
             _ => vec![],
         }
     }};
@@ -118,28 +118,28 @@ macro_rules! match_keyword {
             "if" => {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::If)]
-            },
+            }
             "else" => {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::Else)]
-            },
+            }
             "elseif" => {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::ElseIf)]
-            },
+            }
             "while" => {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::While)]
-            },
+            }
             "for" => {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::For)]
-            },
+            }
             "let" => {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::Let)]
-            },
-            
+            }
+
             _ => vec![],
         }
     }};
@@ -262,7 +262,7 @@ impl Lexer {
             );
 
             if matched_tokens.is_empty() {
-                chars.next();  // Skip unrecognized characters
+                chars.next(); // Skip unrecognized characters
             } else {
                 tokens.extend(matched_tokens);
             }

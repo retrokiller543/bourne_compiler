@@ -52,6 +52,6 @@ fn main() {
             println!("Failed to parse input code.");
             println!("Code: {}", input_code);
             println!("Error: {}", e);
-        },
+        }
     }
 }
