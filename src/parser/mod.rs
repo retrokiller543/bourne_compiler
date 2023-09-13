@@ -1,4 +1,4 @@
-use crate::lexer::{Operator, Token, Keyword};
+use crate::lexer::{Operator, Token, Keyword, BuiltInFunction};
 
 #[derive(Debug, Clone)]
 pub enum ASTNode {
@@ -15,6 +15,7 @@ pub enum ASTNode {
     },
     Variable(String),
     Number(i32),
+    StringLiteral(String),
     If {
         condition: Box<ASTNode>,
         body: Box<ASTNode>,
@@ -24,7 +25,14 @@ pub enum ASTNode {
         condition: Box<ASTNode>,
         body: Box<ASTNode>,
     },
-    Exec { command: String },
+    BuiltInFunctionCall {
+        name: BuiltInFunction,
+        args: Vec<ASTNode>,
+    },
+    UserFunctionCall {
+        name: String,
+        args: Vec<ASTNode>,
+    },
     // Add other control structures as needed
 }
 
@@ -39,7 +47,17 @@ impl ASTNode {
                 format!("$(( {} {} {} ))", left.to_bash(), op.to_bash(), right.to_bash())
             },
             ASTNode::Assign { name, value } => {
-                format!("{}={}", name, value.to_bash())
+                match **value {
+                    ASTNode::BuiltInFunctionCall { name: BuiltInFunction::Exec, ref args } => {
+                        // Special handling for `exec` when it's assigned
+                        match &args[0] {
+                            ASTNode::StringLiteral(s) => format!("{}=$({})", name, s),
+                            ASTNode::Variable(var_name) => format!("{}=$({})", name, var_name),
+                            _ => panic!("Invalid argument for Exec command!"), // or handle error accordingly
+                        }
+                    },
+                    _ => format!("{}={}", name, value.to_bash())
+                }
             },
             ASTNode::Variable(name) => name.clone(),
             ASTNode::Number(n) => n.to_string(),
@@ -53,10 +71,49 @@ impl ASTNode {
             ASTNode::While { condition, body } => {
                 format!("while (( {} ));\ndo\n{}\ndone", condition.to_bash(), body.to_bash())
             },
-            ASTNode::Exec { command } => {
-                format!("$( {} )", command)
-            }
+            ASTNode::BuiltInFunctionCall { name, args } => {
+                match name {
+                    BuiltInFunction::Exec => {
+                        match &args[0] {
+                            ASTNode::StringLiteral(s) => s.clone(),
+                            ASTNode::Variable(var_name) => {
+                                format!("${}", var_name)
+                            }
+                            _ => panic!("Invalid argument for Exec command!"), // or handle error accordingly
+                        }
+                    }
+                    BuiltInFunction::Print => {
+                        match &args[0] {
+                            ASTNode::StringLiteral(s) => format!("echo {}", s),
+                            ASTNode::Variable(name) => format!("echo ${}", name),
+                            _ => format!("echo {}", args[0].to_bash())
+                        }
+                    }
+                    // ... (handle other functions as needed)
+                    _ => format!("{} {}", name.to_bash(), args.iter().map(|arg| arg.to_bash()).collect::<Vec<_>>().join(" "))
+                }
+            },
+            ASTNode::UserFunctionCall { name, args } => {
+                let args_bash = args.iter()
+                    .map(|arg| arg.to_bash())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                format!("{} {}", name, args_bash)
+            },
+            ASTNode::StringLiteral(s) => format!("\"{}\"", s),
             // Handle other cases as needed
+        }
+    }
+}
+
+impl BuiltInFunction {
+    fn to_bash(&self) -> &'static str {
+        match self {
+            BuiltInFunction::Print => "echo",
+            BuiltInFunction::Exec => "exec",
+            BuiltInFunction::Arg => "arg",
+            BuiltInFunction::Exit => "exit",
+            // Add other mappings as needed
         }
     }
 }
@@ -75,44 +132,27 @@ impl Operator {
     }
 }
 
-macro_rules! parse_exec_statement {
+macro_rules! parse_func_call {
     ($self:ident) => {
-        if let Some(Token::Keyword(Keyword::Exec)) = $self.peek_next_token() {
-            let skip_positions;
-            let result;
-            match &$self.tokens[$self.position + 1] {
-                Token::OpenParen => {
-                    match &$self.tokens[$self.position + 2] {
-                        Token::String(command) => {
-                            if let Some(Token::CloseParen) = $self.tokens.get($self.position + 3) {
-                                skip_positions = 4; // Consume 'exec', OpenParen, String, and CloseParen
-                                result = Ok(ASTNode::Exec { command: command.clone() });
-                            } else {
-                                result = Err(format!("Expected ')' after string in 'exec', found {:?}", &$self.tokens[$self.position + 3]));
-                                skip_positions = 3; // Consume 'exec', OpenParen, and String
-                            }
-                        },
-                        _ => {
-                            result = Err(format!("Expected a string after 'exec(', found {:?}", &$self.tokens[$self.position + 2]));
-                            skip_positions = 3; // Consume 'exec', OpenParen, and expect CloseParen
-                        },
-                    }
+        {
+            let current_token = $self.tokens[$self.position].clone(); // Cache the token
+            $self.position += 1;
+            let args = $self.parse_function_arguments()?;
+            match current_token {
+                Token::BuiltInFunction(func_name) => {
+                    Ok(ASTNode::BuiltInFunctionCall { name: func_name, args })
                 },
-                _ => {
-                    skip_positions = 1; // Only consume 'exec'
-                    result = Err(format!("Expected '(' after 'exec', found {:?}", &$self.tokens[$self.position + 1]));
+                Token::Identifier(func_name) => {
+                    Ok(ASTNode::UserFunctionCall { name: func_name, args })
                 },
+                _ => Err(format!("Expected a function name, found {:?}", current_token)),
             }
-            $self.position += skip_positions;
-            result
-        } else {
-            Err(format!("Expected 'exec' keyword, found {:?}", &$self.tokens[$self.position]))
         }
     };
 }
 
 
-
+#[allow(unused_macros)]
 macro_rules! parse_operator {
     ($self:ident) => {
         match &$self.tokens[$self.position] {
@@ -149,6 +189,7 @@ macro_rules! parse_identifier {
     };
 }
 
+#[allow(unused_macros)]
 macro_rules! parse_number {
     ($self:ident) => {
         match &$self.tokens[$self.position] {
@@ -302,7 +343,7 @@ impl Parser {
     fn statement(&mut self) -> Result<ASTNode, String> {
         let stmt = match self.peek_next_token() {
             Some(Token::Keyword(Keyword::Let)) => parse_variable_declaration!(self),
-            Some(Token::Keyword(Keyword::Exec)) => parse_exec_statement!(self),
+            Some(Token::BuiltInFunction(_)) => parse_func_call!(self),
             Some(Token::Keyword(Keyword::If)) => parse_if_statement!(self),
             Some(Token::Keyword(Keyword::While)) => parse_while_loop!(self),
             Some(Token::Number(_)) => self.expression(),
@@ -317,6 +358,32 @@ impl Parser {
         }?;
 
         Ok(ASTNode::Statement(Box::new(stmt)))
+    }
+
+    fn parse_function_arguments(&mut self) -> Result<Vec<ASTNode>, String> {
+        let mut args = Vec::new();
+
+        // Expecting an open parenthesis after function name
+        match &self.tokens[self.position] {
+            Token::OpenParen => self.position += 1,
+            _ => return Err(format!("Expected '(' after function name, found {:?}", &self.tokens[self.position])),
+        }
+
+        // Parse arguments until a close parenthesis is found
+        while &self.tokens[self.position] != &Token::CloseParen {
+            let expr = self.expression()?;
+            args.push(expr);
+
+            // If the next token is a comma, consume it and continue parsing the next argument
+            if &self.tokens[self.position] == &Token::Comma {
+                self.position += 1;
+            }
+        }
+
+        // Consuming the close parenthesis
+        self.position += 1;
+
+        Ok(args)
     }
 
     fn parse_block(&mut self) -> Result<ASTNode, String> {
@@ -399,8 +466,9 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<ASTNode, String> {
+        let next_token = self.peek_next_token().cloned();
         // First, handle expressions enclosed in parentheses
-        if let Some(Token::OpenParen) = self.peek_next_token() {
+        if let Some(Token::OpenParen) = next_token{
             self.position += 1; // Consume '('
             let expr = self.expression()?; // Evaluate the enclosed expression
             if let Some(Token::CloseParen) = self.peek_next_token() {
@@ -411,12 +479,17 @@ impl Parser {
             }
         }
 
-        if let Some(Token::Keyword(Keyword::Exec)) = self.peek_next_token() {
-            return parse_exec_statement!(self);
+        if let Some(Token::BuiltInFunction(_)) = next_token {
+            return parse_func_call!(self);
         }
 
+        if let Some(Token::StringLiteral(s)) = next_token {
+            self.position += 1;
+            return Ok(ASTNode::StringLiteral(s));
+        }
+        
         // Next, handle numbers and variables
-        match self.peek_next_token() {
+        match next_token {
             Some(Token::Number(_)) => self.expect_number(),
             Some(Token::Identifier(_)) => {
                 if let Some(Token::Assign) = self.peek_nth_token(1) {
