@@ -4,7 +4,6 @@ macro_rules! get_parser {
     ($input:expr) => {{
         let lexer = Lexer::new($input);
         let tokens = lexer.lex();
-        dbg!(&tokens);
         Parser::new(tokens)
     }};
 }
@@ -202,8 +201,8 @@ ast_test!(
                             ASTNode::Variable(name) => assert_eq!(name, "x"),
                             _ => panic!("Expected Variable in condition"),
                         }
-                        assert_eq!(extract_number(&**body), Some(5));
-                        assert_eq!(extract_number(&**else_body), Some(3));
+                        assert_eq!(extract_number(body), Some(5));
+                        assert_eq!(extract_number(else_body), Some(3));
                     }
                     _ => panic!("Expected If ASTNode"),
                 },
@@ -215,7 +214,6 @@ ast_test!(
 );
 
 ast_test!(test_while_loop, "while (x) { 5; };", |ast: &ASTNode| {
-    dbg!(ast);
     match ast {
         ASTNode::Program(stmts) => match &stmts[0] {
             ASTNode::Statement(ref inner) => match &**inner {
@@ -224,7 +222,7 @@ ast_test!(test_while_loop, "while (x) { 5; };", |ast: &ASTNode| {
                         ASTNode::Variable(name) => assert_eq!(name, "x"),
                         _ => panic!("Expected Variable in condition"),
                     }
-                    assert_eq!(extract_number(&**body), Some(5));
+                    assert_eq!(extract_number(body), Some(5));
                 }
                 _ => panic!("Expected While ASTNode"),
             },
