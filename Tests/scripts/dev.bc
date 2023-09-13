@@ -1,8 +1,12 @@
 let a = 5;
 let b = 10;
+let z = 29;
 let sum = a + b;
 let diff = a - b;
 let product = a * b;
+let mod = b % a;
+
+print(mod);
 
 print("Initial Values:");
 print("a = ");
@@ -21,6 +25,14 @@ print(diff);
 print("Product of a and b is:");
 print(product);
 
+if z >= 30
+{
+    print("z is greater then or equal to 30");
+}
+else
+{
+    print("z is less then 30");
+};
 
 if diff == 0 {
     print("Both numbers are equal");

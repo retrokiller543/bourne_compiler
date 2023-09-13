@@ -23,6 +23,7 @@ use crate::parser::*;
 use clap::Parser as ClapParser;
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 /// Command line arguments structure.
 #[derive(ClapParser, Debug, Clone)]
@@ -84,6 +85,11 @@ fn main() {
                             fs::write("output_script.sh", bash_code)
                                 .expect("Unable to write to file");
                         }
+                        Command::new("chmod")
+                            .arg("+x")
+                            .arg("build/dev/dev.sh")
+                            .output()
+                            .expect("Unable to change permissions");
                     }
                     Err(e) => {
                         // Handle parsing errors.

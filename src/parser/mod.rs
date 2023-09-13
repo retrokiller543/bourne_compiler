@@ -150,8 +150,13 @@ impl Operator {
             Operator::Minus => "-",
             Operator::Multiply => "*",
             Operator::Divide => "/",
+            Operator::Modulo => "%",
             Operator::Equal => "==",
             Operator::NotEqual => "!=",
+            Operator::GreaterThan => ">",
+            Operator::LessThan => "<",
+            Operator::GreaterThanOrEqual => ">=",
+            Operator::LessThanOrEqual => "<=",
             // Handle other operators as needed
         }
     }
@@ -448,8 +453,13 @@ impl Parser {
         while let Some(op) = self.peek_next_operator(&[
             Operator::Plus,
             Operator::Minus,
+            //Operator::Modulo,
             Operator::Equal,
             Operator::NotEqual,
+            Operator::GreaterThan,
+            Operator::LessThan,
+            Operator::GreaterThanOrEqual,
+            Operator::LessThanOrEqual,
         ]) {
             self.position += 1; // Consume Operator
             let right = self.term()?;
@@ -466,7 +476,9 @@ impl Parser {
     fn term(&mut self) -> Result<ASTNode, String> {
         let mut left = self.factor()?;
 
-        while let Some(op) = self.peek_next_operator(&[Operator::Multiply, Operator::Divide]) {
+        while let Some(op) =
+            self.peek_next_operator(&[Operator::Multiply, Operator::Divide, Operator::Modulo])
+        {
             self.position += 1; // Consume Operator
             let right = self.factor()?;
             left = ASTNode::BinaryOp {

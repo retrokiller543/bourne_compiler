@@ -4,13 +4,18 @@ let z = x + y;
 print("Sum of x and y is:");
 print(z);
 
-if z == 30
+if z >= 30
 {
-    print("z is 30");
+    print("z is greater then or equal to 30");
 }
 else
 {
     print("z is not 30");
+};
+
+if z == 30
+{
+    print("z is 30");
 };
 
 print("Counting down: ");
