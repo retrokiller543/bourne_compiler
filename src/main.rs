@@ -45,7 +45,6 @@ fn main() {
             let mut bash_code = "#!/bin/bash\n".to_string(); // Add shebang here
             bash_code += &ast.to_bash();
 
-            // Optionally, save the Bash script to a file.
             fs::write("output_script.sh", bash_code).expect("Unable to write to file");
         }
         Err(e) => {

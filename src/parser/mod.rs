@@ -59,11 +59,10 @@ impl ASTNode {
                         name: BuiltInFunction::Exec,
                         ref args,
                     } => {
-                        // Special handling for `exec` when it's assigned
                         match &args[0] {
                             ASTNode::StringLiteral(s) => format!("{}=$({})", name, s),
                             ASTNode::Variable(var_name) => format!("{}=$({})", name, var_name),
-                            _ => panic!("Invalid argument for Exec command!"), // or handle error accordingly
+                            _ => panic!("Invalid argument for Exec command!"),
                         }
                     }
                     _ => format!("{}={}", name, value.to_bash()),
@@ -101,7 +100,7 @@ impl ASTNode {
                             ASTNode::Variable(var_name) => {
                                 format!("${}", var_name)
                             }
-                            _ => panic!("Invalid argument for Exec command!"), // or handle error accordingly
+                            _ => panic!("Invalid argument for Exec command!"),
                         }
                     }
                     BuiltInFunction::Print => match &args[0] {
@@ -234,10 +233,10 @@ macro_rules! parse_number {
 
 macro_rules! expect_token {
     ($self:ident, $token_variant:ident($val:ident) => $ast_node_variant:ident) => {
-        match &$self.tokens[$self.position] { // Add reference here
-            Token::$token_variant(ref $val) => { // Use ref keyword here
+        match &$self.tokens[$self.position] {
+            Token::$token_variant(ref $val) => {
                 $self.position += 1;
-                Ok(ASTNode::$ast_node_variant($val.clone())) // Clone the value since it's a reference
+                Ok(ASTNode::$ast_node_variant($val.clone()))
             },
             _ => Err(format!("Expected a {}", stringify!($token_variant))),
         }
@@ -260,7 +259,6 @@ macro_rules! parse_variable_declaration {
                 if let Some(Token::Assign) = $self.peek_next_token() {
                     $self.position += 1; // Consume Assign
                     let expr = $self.expression()?;
-                    //$self.consume_optional_eol();
 
                     Ok(ASTNode::Assign {
                         name,
@@ -284,7 +282,7 @@ macro_rules! parse_if_statement {
             let condition = $self.expression()?;
             if let Some(Token::OpenBrace) = $self.peek_next_token() {
                 $self.position += 1; // Consume OpenBrace
-                let body = $self.parse_block()?; // Assuming you have a method called parse_block
+                let body = $self.parse_block()?;
                 if let Some(Token::Keyword(Keyword::Else)) = $self.peek_next_token() {
                     $self.position += 1; // Consume Else
                     if let Some(Token::OpenBrace) = $self.peek_next_token() {
@@ -317,10 +315,10 @@ macro_rules! parse_if_statement {
 macro_rules! parse_while_loop {
     ($self:ident) => {
         if let Ok(Keyword::While) = parse_keyword!($self) {
-            let condition = $self.expression()?; // Assuming you have a method called parse_expression
+            let condition = $self.expression()?;
             if let Some(Token::OpenBrace) = $self.peek_next_token() {
                 $self.position += 1; // Consume OpenBrace
-                let body = $self.parse_block()?; // Assuming you have a method called parse_block
+                let body = $self.parse_block()?;
                 Ok(ASTNode::While {
                     condition: Box::new(condition),
                     body: Box::new(body),
@@ -354,7 +352,6 @@ impl Parser {
             let stmt = self.statement()?;
             statements.push(stmt);
 
-            // Here, simply consume the EoL token and move to the next statement
             if let Some(Token::EoL) = self.peek_next_token() {
                 self.position += 1; // Consume EoL
             } else {
@@ -439,7 +436,7 @@ impl Parser {
                 _ => {
                     let stmt = self.statement()?;
                     statements.push(stmt);
-                    self.consume_optional_eol(); // Add this line
+                    self.consume_optional_eol();
                 }
             }
         }

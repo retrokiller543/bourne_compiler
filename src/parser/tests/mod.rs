@@ -59,7 +59,7 @@ macro_rules! ast_test {
         fn $name() {
             let ast = get_parser!($input).parse().unwrap();
             println!("{:#?}", ast);
-            $body(&ast); // Pass a reference here
+            $body(&ast);
         }
     };
 }

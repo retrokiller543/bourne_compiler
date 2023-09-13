@@ -104,7 +104,7 @@ test_lexer!(
         Token::Keyword(Keyword::If),
         Token::OpenParen,
         Token::Identifier("x".to_string()),
-        Token::Operator(Operator::Equal), // Update this
+        Token::Operator(Operator::Equal),
         Token::Number(123),
         Token::CloseParen,
         Token::OpenBrace,
