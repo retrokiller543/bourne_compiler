@@ -2,6 +2,18 @@
 // Purpose: lexing the input
 // Path: src/lexer/mod.rs
 
+//! # Lexer Module
+//!
+//! The lexer's purpose is to tokenize the input. Tokenization is the process of converting a sequence
+//! of characters into a sequence of tokens. These tokens are then used by the parser to generate
+//! an Abstract Syntax Tree (AST).
+//!
+//! The lexer uses a combination of enumerations and macros to identify and categorize the different
+//! parts of the input.
+//!
+//! Path: src/lexer/mod.rs
+
+/// Represents the different types of tokens that can be identified by the lexer.
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token {
     Number(i32),
@@ -19,6 +31,7 @@ pub enum Token {
     EoL,
 }
 
+/// Represents reserved keywords in the language.
 #[derive(PartialEq, Debug, Clone)]
 pub enum Keyword {
     If,
@@ -29,6 +42,7 @@ pub enum Keyword {
     Let,
 }
 
+/// Represents built-in functions provided by the language.
 #[derive(PartialEq, Debug, Clone)]
 pub enum BuiltInFunction {
     Print,
@@ -37,6 +51,7 @@ pub enum BuiltInFunction {
     Exit,
 }
 
+/// Represents operators in the language.
 #[derive(PartialEq, Debug, Clone)]
 pub enum Operator {
     Plus,
@@ -47,11 +62,15 @@ pub enum Operator {
     NotEqual,
 }
 
+/// The `Lexer` struct holds the input string and provides the functionality to tokenize it.
 #[derive(Debug, Clone)]
 pub struct Lexer {
     input: String,
 }
 
+// Macros to match specific types of tokens. These are used to simplify the tokenization logic.
+
+/// Matches numeric literals.
 macro_rules! match_number {
     ($chars:ident) => {{
         let mut number = String::new();
@@ -70,6 +89,7 @@ macro_rules! match_number {
     }};
 }
 
+/// Matches built-in function names.
 macro_rules! match_builtin_function {
     ($chars:ident) => {{
         let mut function_name = String::new();
@@ -103,6 +123,7 @@ macro_rules! match_builtin_function {
     }};
 }
 
+/// Matches reserved keywords.
 macro_rules! match_keyword {
     ($chars:ident) => {{
         let mut keyword = String::new();
@@ -145,6 +166,7 @@ macro_rules! match_keyword {
     }};
 }
 
+/// Matches identifiers. Identifiers are sequences of characters that are used to name variables and functions.
 macro_rules! match_identifier {
     ($chars:ident) => {{
         let mut identifier = String::new();
@@ -163,6 +185,7 @@ macro_rules! match_identifier {
     }};
 }
 
+/// Matches string literals. String literals are sequences of characters enclosed in double quotes.
 macro_rules! match_string {
     ($chars:ident) => {{
         let mut string_val = String::new();
@@ -183,6 +206,7 @@ macro_rules! match_string {
     }};
 }
 
+/// Matches individual tokens based on their character patterns.
 macro_rules! match_token {
     ($chars:ident, $( ($token_pattern: pat, $token_expr: expr) ),* , numbers, keywords, identifiers) => {
         match $chars.peek() {
@@ -232,12 +256,13 @@ macro_rules! match_token {
 }
 
 impl Lexer {
+    /// Constructs a new `Lexer` with the provided input string.
     pub fn new(input: &str) -> Self {
         Lexer {
             input: input.to_string(),
         }
     }
-
+    /// Tokenizes the input string and returns a vector of tokens.
     pub fn lex(&self) -> Vec<Token> {
         let mut tokens = Vec::new();
         let mut chars = self.input.chars().peekable();
@@ -272,5 +297,6 @@ impl Lexer {
     }
 }
 
+/// Unit tests for the lexer.
 #[cfg(test)]
 mod tests;
