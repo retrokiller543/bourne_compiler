@@ -1,60 +1,74 @@
 // Code for the main function of the compiler.
 // Path: src/main.rs
 
+#[cfg(debug_assertions)]
+mod ast_visualizer;
+
 mod lexer;
 mod parser;
+
 use crate::lexer::Lexer;
 use crate::parser::*;
-
+use clap::Parser as ClapParser;
 use std::fs;
+use std::path::Path;
+
+#[derive(ClapParser, Debug, Clone)]
+#[command(author, version, about, name = "Compiler to bash")]
+struct Args {
+    path: Option<String>,
+}
 
 fn main() {
-    // Sample input string in your mini-language.
-    let input_code = r#"
-        let x = 10;
-        let y = 20;
-        let z = x + y;
-        print("Sum of x and y is:");
-        print(z);
+    let args = Args::parse();
 
-        if z == 30
-        {
-            print("z is 30");
+    match args.path {
+        Some(path) => {
+            let path = Path::new(&path);
+            if path.exists() && path.is_file() {
+                let content = fs::read_to_string(path).expect("Unable to read file");
+                let lexer = Lexer::new(&content);
+                let tokens = lexer.lex();
+                let mut parser = Parser::new(tokens);
+                match parser.parse() {
+                    Ok(ast) => {
+                        #[cfg(debug_assertions)]
+                        {
+                            let ast_visualization = ast_visualizer::visualize_ast(&ast);
+                            let build_path = std::path::Path::new("build/dev");
+                            if build_path.exists() {
+                                fs::remove_dir_all(build_path).expect("Unable to remove directory");
+                                fs::create_dir_all(build_path).expect("Unable to create directory");
+                            } else {
+                                fs::create_dir_all(build_path).expect("Unable to create directory");
+                            }
+                            fs::write("build/dev/ast.dot", ast_visualization)
+                                .expect("Unable to write to file");
+                        }
+
+                        let mut bash_code = "#!/bin/bash\n\n".to_string();
+                        bash_code += &ast.to_bash();
+
+                        #[cfg(debug_assertions)]
+                        fs::write("build/dev/dev.sh", bash_code).expect("Unable to write to file");
+                        #[cfg(not(debug_assertions))]
+                        {
+                            let name = path.file_name().unwrap().to_str().unwrap();
+                            dbg!(name);
+                            fs::write("output_script.sh", bash_code)
+                                .expect("Unable to write to file");
+                        }
+                    }
+                    Err(e) => {
+                        println!("Failed to parse input code.");
+                        println!("Code: {}", content);
+                        println!("Error: {}", e);
+                    }
+                }
+            }
         }
-        else
-        {
-            print("z is not 30");
-        };
-
-        print("Counting down: ");
-
-        while x != 0
-        {
-            print(x);
-            x = x - 1;
-        }
-
-        print("Done counting!");
-    "#;
-
-    // 1. Lexing the input.
-    let lexer = Lexer::new(input_code);
-    let tokens = lexer.lex();
-
-    // 2. Parsing the tokens into an AST.
-    let mut parser = Parser::new(tokens);
-    match parser.parse() {
-        Ok(ast) => {
-            // 3. Convert the AST to a Bash script.
-            let mut bash_code = "#!/bin/bash\n".to_string(); // Add shebang here
-            bash_code += &ast.to_bash();
-
-            fs::write("output_script.sh", bash_code).expect("Unable to write to file");
-        }
-        Err(e) => {
-            println!("Failed to parse input code.");
-            println!("Code: {}", input_code);
-            println!("Error: {}", e);
+        _ => {
+            println!("Incorrect args")
         }
     }
 }

@@ -178,18 +178,14 @@ merge:
 
 # Project specific
 
-.PHONY: compile
-compile:
-	@cargo run -- --debug
-	@nasm -felf64 ./dev/dev.asm
-	@ld ./dev/dev.o -o ./dev/dev
+.PHONY: run
+run:
+	@cargo run -- Tests/scripts/dev.bc
 	@echo "¤ Compiled successfully, running..."
-	@./dev/dev
-	@echo $?
+	@chmod +x build/dev/dev.sh
+	@./build/dev/dev.sh
 
-.PHONY: man-test
-man-test:
-	@nasm -felf64 ./dev/example.asm
-	@ld ./dev/example.o -o ./dev/example
-	@./dev/example
-	@echo $?
+.PHONY: get-tree
+get-tree:
+	@cargo run -- Tests/scripts/dev.bc
+	@dot -Tpng -o build/dev/output.png build/dev/ast.dot

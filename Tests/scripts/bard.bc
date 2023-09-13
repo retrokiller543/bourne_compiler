@@ -1,0 +1,39 @@
+let x = 10;
+let y = 20;
+let z = x + y;
+print("Sum of x and y is:");
+print(z);
+
+if z == 30
+{
+    print("z is 30");
+}
+else
+{
+    print("z is not 30");
+};
+
+print("Counting down: ");
+
+while x != 0
+{
+    print(x);
+    x = x - 1;
+};
+
+print("Done counting!");
+
+let user_input = arg(1);
+
+if user_input == "hello"
+{
+    print("Hello, world!");
+}
+else
+{
+    print("That's not a valid input.");
+};
+
+exec("ls -l");
+
+exit(0);

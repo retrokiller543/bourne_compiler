@@ -1,0 +1,79 @@
+let a = 5;
+let b = 10;
+let sum = a + b;
+let diff = a - b;
+let product = a * b;
+
+print("Initial Values:");
+print("a = ");
+print(a);
+print("b = ");
+print(b);
+
+print("Performing Arithmetic Operations...");
+
+print("Sum of a and b is:");
+print(sum);
+
+print("Difference between a and b is:");
+print(diff);
+
+print("Product of a and b is:");
+print(product);
+
+
+if diff == 0 {
+    print("Both numbers are equal");
+} else {
+    print("a is greater than b");
+};
+
+let counter = 5;
+print("Countdown starts:");
+
+while counter != 0 {
+    print(counter);
+    counter = counter - 1;
+};
+
+print("Countdown ended!");
+
+print("Demonstrating nested conditions and loops:");
+
+let i = 1;
+
+while i != 6 {
+    let mut counter = 1;
+    let target = 3;
+
+    while counter != target {
+        if i == counter {
+            print("Number ");
+            print(i);
+            print(" matches the inner counter of ");
+            print(counter);
+        };
+        counter = counter + 1;
+    };
+
+    if i == 2 {
+        print("Number ");
+        print(i);
+        print(" is my favorite!");
+    }
+
+    if i == 4 {
+        print("Number ");
+        print(i);
+        print(" is not my favorite.");
+    } else {
+        print("Number ");
+        print(i);
+        print(" is just another number.");
+    };
+
+    i = i + 1;
+};
+
+
+print("End of nested demonstration!");

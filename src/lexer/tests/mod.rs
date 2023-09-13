@@ -21,6 +21,12 @@ test_lexer!(multiply, "*", vec![Token::Operator(Operator::Multiply)]);
 test_lexer!(divide, "/", vec![Token::Operator(Operator::Divide)]);
 
 test_lexer!(assign, "=", vec![Token::Assign]);
+test_lexer!(equal, "==", vec![Token::Operator(Operator::Equal)]);
+test_lexer!(not_equal, "!=", vec![Token::Operator(Operator::NotEqual)]);
+test_lexer!(open_paren, "(", vec![Token::OpenParen]);
+test_lexer!(close_paren, ")", vec![Token::CloseParen]);
+test_lexer!(open_brace, "{", vec![Token::OpenBrace]);
+test_lexer!(close_brace, "}", vec![Token::CloseBrace]);
 
 test_lexer!(eol, ";", vec![Token::EoL]);
 
@@ -172,5 +178,97 @@ test_lexer!(
         Token::OpenParen,
         Token::StringLiteral("ls".to_string()),
         Token::CloseParen
+    ]
+);
+
+test_lexer!(
+    test_print,
+    "print(\"Hello, World!\")",
+    vec![
+        Token::BuiltInFunction(BuiltInFunction::Print),
+        Token::OpenParen,
+        Token::StringLiteral("Hello, World!".to_string()),
+        Token::CloseParen
+    ]
+);
+
+test_lexer!(
+    test_exit,
+    "exit(0)",
+    vec![
+        Token::BuiltInFunction(BuiltInFunction::Exit),
+        Token::OpenParen,
+        Token::Number(0),
+        Token::CloseParen
+    ]
+);
+
+test_lexer!(
+    test_arg,
+    "arg(0)",
+    vec![
+        Token::BuiltInFunction(BuiltInFunction::Arg),
+        Token::OpenParen,
+        Token::Number(0),
+        Token::CloseParen
+    ]
+);
+
+test_lexer!(
+    test_for,
+    "for (let i = 0; i != 10; i = i + 1) { print(i); }",
+    vec![
+        Token::Keyword(Keyword::For),
+        Token::OpenParen,
+        Token::Keyword(Keyword::Let),
+        Token::Identifier("i".to_string()),
+        Token::Assign,
+        Token::Number(0),
+        Token::EoL,
+        Token::Identifier("i".to_string()),
+        Token::Operator(Operator::NotEqual),
+        Token::Number(10),
+        Token::EoL,
+        Token::Identifier("i".to_string()),
+        Token::Assign,
+        Token::Identifier("i".to_string()),
+        Token::Operator(Operator::Plus),
+        Token::Number(1),
+        Token::CloseParen,
+        Token::OpenBrace,
+        Token::BuiltInFunction(BuiltInFunction::Print),
+        Token::OpenParen,
+        Token::Identifier("i".to_string()),
+        Token::CloseParen,
+        Token::EoL,
+        Token::CloseBrace,
+    ]
+);
+
+test_lexer!(
+    test_else,
+    "if (x == 5) { print(\"Hello\"); } else { print(\"World\"); }",
+    vec![
+        Token::Keyword(Keyword::If),
+        Token::OpenParen,
+        Token::Identifier("x".to_string()),
+        Token::Operator(Operator::Equal),
+        Token::Number(5),
+        Token::CloseParen,
+        Token::OpenBrace,
+        Token::BuiltInFunction(BuiltInFunction::Print),
+        Token::OpenParen,
+        Token::StringLiteral("Hello".to_string()),
+        Token::CloseParen,
+        Token::EoL,
+        Token::CloseBrace,
+        Token::Keyword(Keyword::Else),
+        Token::OpenBrace,
+        Token::BuiltInFunction(BuiltInFunction::Print),
+        Token::OpenParen,
+        Token::StringLiteral("World".to_string()),
+        Token::CloseParen,
+        Token::EoL,
+        Token::CloseBrace,
     ]
 );
