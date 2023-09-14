@@ -77,7 +77,8 @@ fn main() {
 
                         // Determine where to write the Bash output based on compile mode.
                         #[cfg(debug_assertions)]
-                        fs::write("build/dev/dev.sh", bash_code).expect("Unable to write to file");
+                        fs::write("build/dev/dev.bash", bash_code)
+                            .expect("Unable to write to file");
                         #[cfg(not(debug_assertions))]
                         {
                             let name = path.file_name().unwrap().to_str().unwrap();
@@ -87,7 +88,7 @@ fn main() {
                         }
                         Command::new("chmod")
                             .arg("+x")
-                            .arg("build/dev/dev.sh")
+                            .arg("build/dev/dev.bash")
                             .output()
                             .expect("Unable to change permissions");
                     }

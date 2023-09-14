@@ -149,7 +149,7 @@ macro_rules! match_keyword {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::Else)]
             }
-            "elseif" => {
+            "elif" => {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::ElseIf)]
             }

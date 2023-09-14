@@ -5,7 +5,6 @@
 all: build
 
 # Setup the project
-
 .PHONY: setup
 setup:
 	@read -p "Enter binary path [default: ./target/release/project_name]: " binary; \
@@ -13,11 +12,13 @@ setup:
 	read -p "Enter package version [default: 1.0.0]: " version; \
 	read -p "Enter package maintainer [default: Your Name your.email@email.com]: " maintainer; \
 	read -p "Enter package description [default: Description of the project]: " description; \
+	read -p "Enter project website or GitHub link: " website; \
 	echo "BINARY_PATH=$${binary:-./target/release/project_name}" > makeconfig; \
 	echo "PACKAGE_NAME=$${name:-project-name}" >> makeconfig; \
 	echo "PACKAGE_VERSION=$${version:-1.0.0}" >> makeconfig; \
 	echo "PACKAGE_MAINTAINER=$${maintainer:-\"Your Name your.email@email.com\"}" >> makeconfig; \
-	echo "PACKAGE_DESCRIPTION=$${description:-\"Description of the project\"}" >> makeconfig;
+	echo "PACKAGE_DESCRIPTION=$${description:-\"Description of the project\"}" >> makeconfig; \
+	echo "PROJECT_WEBSITE=$${website}" >> makeconfig;
 
 # Packaging
 
@@ -36,8 +37,10 @@ package-ubuntu:
 	@echo "Architecture: amd64" >> build/ubuntu/$(PACKAGE_NAME)/DEBIAN/control
 	@echo "Maintainer: $(PACKAGE_MAINTAINER)" >> build/ubuntu/$(PACKAGE_NAME)/DEBIAN/control
 	@echo "Description: $(PACKAGE_DESCRIPTION)" >> build/ubuntu/$(PACKAGE_NAME)/DEBIAN/control
+	@echo "Homepage: $(PROJECT_WEBSITE)" >> build/ubuntu/$(PACKAGE_NAME)/DEBIAN/control
 	@echo "¤ Building package"
-	@dpkg-deb --build build/ubuntu/$(PACKAGE_NAME)
+	@dpkg-deb --build build/ubuntu/$(PACKAGE_NAME) build/ubuntu/$(PACKAGE_NAME)-$(PACKAGE_VERSION)-amd64.deb
+
 
 # macOS .pkg packaging
 .PHONY: package-macos
@@ -180,12 +183,14 @@ merge:
 
 .PHONY: run
 run:
-	@cargo run -- Tests/scripts/dev.bc
+	@cargo run -- Tests/scripts/example.bc
+	@dot -Tpng -o build/dev/output.png build/dev/ast.dot
 	@echo "¤ Compiled successfully, running..."
-	@chmod +x build/dev/dev.sh
-	@./build/dev/dev.sh
+	@./build/dev/dev.bash
 
 .PHONY: get-tree
 get-tree:
 	@cargo run -- Tests/scripts/dev.bc
 	@dot -Tpng -o build/dev/output.png build/dev/ast.dot
+	@echo "¤ Compiled successfully, running..."
+	@./build/dev/dev.bash

@@ -52,19 +52,34 @@ fn build_graph<'a>(
             body,
             else_body,
         } => {
-            build_graph(graph, &**condition, Some(node_idx));
-            build_graph(graph, &**body, Some(node_idx));
+            let condition_idx = graph.add_node("Condition".to_string());
+            graph.add_edge(node_idx, condition_idx, "Condition");
+            build_graph(graph, &**condition, Some(condition_idx));
+
+            let body_idx = graph.add_node("true".to_string());
+            graph.add_edge(node_idx, body_idx, "true");
+            build_graph(graph, &**body, Some(body_idx));
+
             if let Some(else_body) = else_body {
-                build_graph(graph, &**else_body, Some(node_idx));
+                let else_idx = graph.add_node("else".to_string());
+                graph.add_edge(node_idx, else_idx, "else");
+                build_graph(graph, &**else_body, Some(else_idx));
             }
         }
         ASTNode::While { condition, body } => {
-            build_graph(graph, &**condition, Some(node_idx));
-            build_graph(graph, &**body, Some(node_idx));
+            let condition_idx = graph.add_node("Condition".to_string());
+            graph.add_edge(node_idx, condition_idx, "Condition");
+            build_graph(graph, &**condition, Some(condition_idx));
+
+            let body_idx = graph.add_node("Body".to_string());
+            graph.add_edge(node_idx, body_idx, "Body");
+            build_graph(graph, &**body, Some(body_idx));
         }
         ASTNode::BuiltInFunctionCall { args, .. } => {
+            let args_idx = graph.add_node("Args".to_string());
             for arg in args {
-                build_graph(graph, arg, Some(node_idx));
+                graph.add_edge(node_idx, args_idx, "Args");
+                build_graph(graph, arg, Some(args_idx));
             }
         }
         ASTNode::Assign { name: _, value } => {
