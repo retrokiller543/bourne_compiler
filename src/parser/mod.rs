@@ -4,7 +4,34 @@
 
 use crate::lexer::{BuiltInFunction, Keyword, Operator, Token};
 
-#[derive(Debug, Clone)]
+use std::collections::{HashMap, HashSet};
+
+#[derive(Default, Debug)]
+pub struct SymbolTable {
+    table: HashMap<String, i32>,
+}
+
+impl SymbolTable {
+    pub fn new() -> Self {
+        SymbolTable {
+            table: HashMap::new(),
+        }
+    }
+
+    pub fn set(&mut self, name: &str, value: i32) {
+        self.table.insert(name.to_string(), value);
+    }
+
+    pub fn get(&self, name: &str) -> Option<i32> {
+        self.table.get(name).cloned()
+    }
+
+    pub fn contains(&self, name: &str) -> bool {
+        self.table.contains_key(name)
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
 pub enum ASTNode {
     Program(Vec<ASTNode>),
     Statement(Box<ASTNode>),
@@ -20,11 +47,6 @@ pub enum ASTNode {
     Variable(String),
     Number(i32),
     StringLiteral(String),
-    If {
-        condition: Box<ASTNode>,
-        body: Box<ASTNode>,
-        else_body: Option<Box<ASTNode>>,
-    },
     While {
         condition: Box<ASTNode>,
         body: Box<ASTNode>,
@@ -36,6 +58,10 @@ pub enum ASTNode {
     UserFunctionCall {
         name: String,
         args: Vec<ASTNode>,
+    },
+    Conditional {
+        branches: Vec<(Box<ASTNode>, Box<ASTNode>)>, // (condition, body)
+        else_body: Option<Box<ASTNode>>,
     },
     // Add other control structures as needed
 }
@@ -70,21 +96,6 @@ impl ASTNode {
             },
             ASTNode::Variable(name) => name.clone(),
             ASTNode::Number(n) => n.to_string(),
-            ASTNode::If {
-                condition,
-                body,
-                else_body,
-            } => {
-                let mut bash_code = format!(
-                    "if (( {} ));\nthen\n{}\n",
-                    condition.to_bash(),
-                    body.to_bash()
-                );
-                if let Some(else_body) = else_body {
-                    bash_code += &format!("else\n{}\n", else_body.to_bash());
-                }
-                bash_code + "fi"
-            }
             ASTNode::While { condition, body } => {
                 format!(
                     "while (( {} ));\ndo\n{}\ndone",
@@ -126,7 +137,37 @@ impl ASTNode {
                 format!("{} {}", name, args_bash)
             }
             ASTNode::StringLiteral(s) => format!("\"{}\"", s),
-            // Handle other cases as needed
+            ASTNode::Conditional {
+                branches,
+                else_body,
+            } => {
+                let mut bash_code = String::new();
+
+                for (index, (condition, body)) in branches.iter().enumerate() {
+                    match index {
+                        0 => {
+                            bash_code += &format!(
+                                "if (( {} )); then\n{}\n",
+                                condition.to_bash(),
+                                body.to_bash()
+                            )
+                        } // Handle `if`
+                        _ => {
+                            bash_code += &format!(
+                                "elif (( {} )); then\n{}\n",
+                                condition.to_bash(),
+                                body.to_bash()
+                            )
+                        } // Handle `elif`
+                    }
+                }
+
+                if let Some(else_node) = else_body {
+                    bash_code += &format!("else\n{}\n", else_node.to_bash());
+                }
+
+                bash_code + "fi"
+            } // Handle other cases as needed
         }
     }
 }
@@ -150,8 +191,13 @@ impl Operator {
             Operator::Minus => "-",
             Operator::Multiply => "*",
             Operator::Divide => "/",
+            Operator::Modulo => "%",
             Operator::Equal => "==",
             Operator::NotEqual => "!=",
+            Operator::GreaterThan => ">",
+            Operator::LessThan => "<",
+            Operator::GreaterThanOrEqual => ">=",
+            Operator::LessThanOrEqual => "<=",
             // Handle other operators as needed
         }
     }
@@ -258,6 +304,16 @@ macro_rules! parse_variable_declaration {
                     $self.position += 1; // Consume Assign
                     let expr = $self.expression()?;
 
+                    // Check if expr is a constant and update the symbol table
+                    match &expr {
+                        ASTNode::Number(n) => $self.symtable.set(&name, *n),
+                        _ => {
+                            if $self.symtable.contains(&name) {
+                                $self.symtable.table.remove(&name);
+                            }
+                        }
+                    }
+
                     Ok(ASTNode::Assign {
                         name,
                         value: Box::new(expr),
@@ -277,30 +333,48 @@ macro_rules! parse_variable_declaration {
 macro_rules! parse_if_statement {
     ($self:ident) => {
         if let Ok(Keyword::If) = parse_keyword!($self) {
+            let mut branches = Vec::new();
             let condition = $self.expression()?;
             if let Some(Token::OpenBrace) = $self.peek_next_token() {
                 $self.position += 1; // Consume OpenBrace
                 let body = $self.parse_block()?;
-                if let Some(Token::Keyword(Keyword::Else)) = $self.peek_next_token() {
-                    $self.position += 1; // Consume Else
-                    if let Some(Token::OpenBrace) = $self.peek_next_token() {
-                        $self.position += 1; // Consume OpenBrace
-                        let else_body = $self.parse_block()?;
-                        Ok(ASTNode::If {
-                            condition: Box::new(condition),
-                            body: Box::new(body),
-                            else_body: Some(Box::new(else_body)),
-                        })
-                    } else {
-                        Err("Expected '{' after 'else'".to_string())
+                branches.push((Box::new(condition), Box::new(body)));
+
+                let mut else_body: Option<Box<ASTNode>> = None;
+
+                loop {
+                    match $self.peek_next_token() {
+                        Some(Token::Keyword(Keyword::ElseIf)) => {
+                            $self.position += 1; // Consume ElseIf
+                            let else_if_condition = $self.expression()?;
+                            if let Some(Token::OpenBrace) = $self.peek_next_token() {
+                                $self.position += 1; // Consume OpenBrace
+                                let else_if_body = $self.parse_block()?;
+                                branches
+                                    .push((Box::new(else_if_condition), Box::new(else_if_body)));
+                            } else {
+                                return Err("Expected '{' after else if condition".to_string());
+                            }
+                        }
+                        Some(Token::Keyword(Keyword::Else)) => {
+                            $self.position += 1; // Consume Else
+                            if let Some(Token::OpenBrace) = $self.peek_next_token() {
+                                $self.position += 1; // Consume OpenBrace
+                                let else_block = $self.parse_block()?;
+                                else_body = Some(Box::new(else_block));
+                                break;
+                            } else {
+                                return Err("Expected '{' after 'else'".to_string());
+                            }
+                        }
+                        _ => break,
                     }
-                } else {
-                    Ok(ASTNode::If {
-                        condition: Box::new(condition),
-                        body: Box::new(body),
-                        else_body: None,
-                    })
                 }
+
+                Ok(ASTNode::Conditional {
+                    branches,
+                    else_body,
+                })
             } else {
                 Err("Expected '{' after if condition".to_string())
             }
@@ -330,9 +404,192 @@ macro_rules! parse_while_loop {
     };
 }
 
+fn remove_unused_variables(ast: ASTNode) -> ASTNode {
+    // Step 1: Collect used variables
+    let mut used_vars = HashSet::new();
+    collect_used_variables(&ast, &mut used_vars);
+
+    // Step 2: Filter out unused assignments
+    filter_unused_assignments(ast, &used_vars).unwrap()
+}
+
+fn collect_used_variables(node: &ASTNode, used_vars: &mut HashSet<String>) {
+    match node {
+        ASTNode::Variable(name) => {
+            used_vars.insert(name.clone());
+        }
+        ASTNode::Program(statements) => {
+            for stmt in statements {
+                collect_used_variables(stmt, used_vars);
+            }
+        }
+        ASTNode::BinaryOp { left, right, .. } => {
+            collect_used_variables(left, used_vars);
+            collect_used_variables(right, used_vars);
+        }
+        ASTNode::Assign { value, .. } => {
+            collect_used_variables(value, used_vars);
+        }
+        ASTNode::BuiltInFunctionCall { args, .. } | ASTNode::UserFunctionCall { args, .. } => {
+            for arg in args {
+                collect_used_variables(arg, used_vars);
+            }
+        }
+        // Handle other node types as necessary
+        _ => {}
+    }
+}
+
+fn filter_unused_assignments(node: ASTNode, used_vars: &HashSet<String>) -> Option<ASTNode> {
+    match node {
+        ASTNode::Program(statements) => {
+            let filtered_statements: Vec<ASTNode> = statements
+                .into_iter()
+                .filter_map(|stmt| {
+                    if let ASTNode::Assign { name, value } = &stmt {
+                        if !used_vars.contains(name) && !is_variable_used_in_ast(value, name) {
+                            return None; // Filter out unused assignments
+                        }
+                    }
+                    filter_unused_assignments(stmt, used_vars)
+                })
+                .collect();
+            Some(ASTNode::Program(filtered_statements))
+        }
+        ASTNode::Statement(inner) => {
+            if let Some(filtered_inner) = filter_unused_assignments(*inner, used_vars) {
+                Some(ASTNode::Statement(Box::new(filtered_inner)))
+            } else {
+                None
+            }
+        }
+        // ... handle other cases
+        _ => Some(node),
+    }
+}
+
+fn is_variable_used_in_ast(node: &ASTNode, var_name: &str) -> bool {
+    match node {
+        ASTNode::Variable(name) => name == var_name,
+        ASTNode::Program(statements) => statements
+            .iter()
+            .any(|stmt| is_variable_used_in_ast(stmt, var_name)),
+        ASTNode::BinaryOp { left, right, .. } => {
+            is_variable_used_in_ast(left, var_name) || is_variable_used_in_ast(right, var_name)
+        }
+        ASTNode::Assign { value, .. } => is_variable_used_in_ast(value, var_name),
+        ASTNode::BuiltInFunctionCall { args, .. } | ASTNode::UserFunctionCall { args, .. } => args
+            .iter()
+            .any(|arg| is_variable_used_in_ast(arg, var_name)),
+        // Handle other node types as necessary
+        _ => false,
+    }
+}
+
+fn propagate_constants(node: ASTNode, symtable: &mut SymbolTable) -> ASTNode {
+    match node {
+        ASTNode::Program(statements) => {
+            let optimized_statements = statements
+                .into_iter()
+                .map(|stmt| propagate_constants(stmt, symtable))
+                .collect();
+            ASTNode::Program(optimized_statements)
+        }
+        ASTNode::Statement(inner) => {
+            ASTNode::Statement(Box::new(propagate_constants(*inner, symtable)))
+        }
+        ASTNode::Assign { name, value } => {
+            let new_value = propagate_constants(*value, symtable);
+
+            // If the new_value is a number, update the symbol table
+            if let ASTNode::Number(val) = &new_value {
+                symtable.set(&name, *val);
+            }
+
+            ASTNode::Assign {
+                name,
+                value: Box::new(new_value),
+            }
+        }
+        ASTNode::BuiltInFunctionCall { name, args } => {
+            let optimized_args = args
+                .into_iter()
+                .map(|arg| propagate_constants(arg, symtable))
+                .collect();
+            ASTNode::BuiltInFunctionCall {
+                name,
+                args: optimized_args,
+            }
+        }
+        ASTNode::Variable(name) => {
+            if let Some(value) = symtable.get(&name) {
+                ASTNode::Number(value)
+            } else {
+                ASTNode::Variable(name)
+            }
+        }
+        ASTNode::BinaryOp { op, left, right } => ASTNode::BinaryOp {
+            op,
+            left: Box::new(propagate_constants(*left, symtable)),
+            right: Box::new(propagate_constants(*right, symtable)),
+        },
+        _ => node,
+    }
+}
+
+fn fold_constants(node: ASTNode) -> ASTNode {
+    match node {
+        ASTNode::Program(statements) => {
+            let folded_statements = statements.into_iter().map(fold_constants).collect();
+            ASTNode::Program(folded_statements)
+        }
+        ASTNode::Statement(inner) => ASTNode::Statement(Box::new(fold_constants(*inner))),
+        ASTNode::Assign { name, value } => ASTNode::Assign {
+            name,
+            value: Box::new(fold_constants(*value)),
+        },
+        ASTNode::BuiltInFunctionCall { name, args } => {
+            let folded_args = args.into_iter().map(fold_constants).collect();
+            ASTNode::BuiltInFunctionCall {
+                name,
+                args: folded_args,
+            }
+        }
+        ASTNode::BinaryOp { op, left, right } => {
+            let left = fold_constants(*left);
+            let right = fold_constants(*right);
+            if let (ASTNode::Number(l_val), ASTNode::Number(r_val)) = (&left, &right) {
+                let result = match op {
+                    Operator::Plus => l_val + r_val,
+                    Operator::Minus => l_val - r_val,
+                    Operator::Multiply => l_val * r_val,
+                    Operator::Divide => l_val / r_val,
+                    Operator::Modulo => l_val % r_val,
+                    _ => {
+                        return ASTNode::BinaryOp {
+                            op,
+                            left: Box::new(left),
+                            right: Box::new(right),
+                        }
+                    }
+                };
+                ASTNode::Number(result)
+            } else {
+                ASTNode::BinaryOp {
+                    op,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                }
+            }
+        }
+        _ => node,
+    }
+}
+
 pub struct Parser {
     tokens: Vec<Token>,
     position: usize,
+    symtable: SymbolTable,
 }
 
 impl Parser {
@@ -340,6 +597,7 @@ impl Parser {
         Parser {
             tokens,
             position: 0,
+            symtable: SymbolTable::new(),
         }
     }
 
@@ -356,7 +614,20 @@ impl Parser {
                 return Err(format!("Expected EoL, found {:?}", self.peek_next_token()));
             }
         }
-        Ok(ASTNode::Program(statements))
+        let mut ast = ASTNode::Program(statements);
+        let mut previous_ast = ast.clone();
+
+        loop {
+            let optimized_ast = remove_unused_variables(self.optimize(ast.clone()));
+            if optimized_ast == previous_ast {
+                break;
+            }
+            previous_ast = ast;
+            ast = optimized_ast;
+        }
+
+        dbg!(&ast);
+        Ok(ast)
     }
 
     fn consume_optional_eol(&mut self) {
@@ -448,8 +719,13 @@ impl Parser {
         while let Some(op) = self.peek_next_operator(&[
             Operator::Plus,
             Operator::Minus,
+            //Operator::Modulo,
             Operator::Equal,
             Operator::NotEqual,
+            Operator::GreaterThan,
+            Operator::LessThan,
+            Operator::GreaterThanOrEqual,
+            Operator::LessThanOrEqual,
         ]) {
             self.position += 1; // Consume Operator
             let right = self.term()?;
@@ -466,7 +742,9 @@ impl Parser {
     fn term(&mut self) -> Result<ASTNode, String> {
         let mut left = self.factor()?;
 
-        while let Some(op) = self.peek_next_operator(&[Operator::Multiply, Operator::Divide]) {
+        while let Some(op) =
+            self.peek_next_operator(&[Operator::Multiply, Operator::Divide, Operator::Modulo])
+        {
             self.position += 1; // Consume Operator
             let right = self.factor()?;
             left = ASTNode::BinaryOp {
@@ -590,6 +868,11 @@ impl Parser {
 
     fn expect_number(&mut self) -> Result<ASTNode, String> {
         expect_token!(self, Number(val) => Number)
+    }
+
+    pub fn optimize(&mut self, node: ASTNode) -> ASTNode {
+        let node = propagate_constants(node, &mut self.symtable);
+        fold_constants(node)
     }
 }
 

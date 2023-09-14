@@ -4,13 +4,29 @@ let z = x + y;
 print("Sum of x and y is:");
 print(z);
 
-if z == 30
+print("Test optimized variables");
+
+let a = 10;
+let b = 20;
+let c = a + b;
+print("Sum of a and b is:");
+print(c);
+let d = a * b + c;
+print("D is:");
+print(d);
+
+if z >= 30
 {
-    print("z is 30");
+    print("z is greater then or equal to 30");
 }
 else
 {
     print("z is not 30");
+};
+
+if z == 30
+{
+    print("z is 30");
 };
 
 print("Counting down: ");

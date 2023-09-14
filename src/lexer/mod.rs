@@ -58,8 +58,13 @@ pub enum Operator {
     Minus,
     Multiply,
     Divide,
+    Modulo,
     Equal,
     NotEqual,
+    GreaterThan,
+    LessThan,
+    GreaterThanOrEqual,
+    LessThanOrEqual,
 }
 
 /// The `Lexer` struct holds the input string and provides the functionality to tokenize it.
@@ -144,7 +149,7 @@ macro_rules! match_keyword {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::Else)]
             }
-            "elseif" => {
+            "elif" => {
                 $chars = chars_copy;
                 vec![Token::Keyword(Keyword::ElseIf)]
             }
@@ -229,7 +234,27 @@ macro_rules! match_token {
                     }
                     _ => vec![], // Handle unexpected token or return error
                 }
-            }
+            },
+            Some(&'<') => {
+                $chars.next(); // Consume '<'
+                match $chars.peek() {
+                    Some(&'=') => {
+                        $chars.next(); // Consume '='
+                        vec![Token::Operator(Operator::LessThanOrEqual)]
+                    }
+                    _ => vec![Token::Operator(Operator::LessThan)],
+                }
+            },
+            Some(&'>') => {
+                $chars.next(); // Consume '>'
+                match $chars.peek() {
+                    Some(&'=') => {
+                        $chars.next(); // Consume '='
+                        vec![Token::Operator(Operator::GreaterThanOrEqual)]
+                    }
+                    _ => vec![Token::Operator(Operator::GreaterThan)],
+                }
+            },
             Some(&ch) => match ch {
                 '"' => match_string!($chars),
                 $($token_pattern => {
@@ -274,6 +299,7 @@ impl Lexer {
                 ('-', Some(Token::Operator(Operator::Minus))),
                 ('*', Some(Token::Operator(Operator::Multiply))),
                 ('/', Some(Token::Operator(Operator::Divide))),
+                ('%', Some(Token::Operator(Operator::Modulo))),
                 ('=', Some(Token::Assign)),
                 ('(', Some(Token::OpenParen)),
                 (')', Some(Token::CloseParen)),

@@ -4,7 +4,7 @@ use petgraph::graph::NodeIndex;
 use petgraph::Graph;
 
 pub fn visualize_ast(ast: &ASTNode) -> String {
-    let mut graph = Graph::<String, &str>::new(); // <-- Change node type to String
+    let mut graph = Graph::<String, &str>::new();
     build_graph(&mut graph, ast, None);
     format!("{:?}", Dot::with_config(&graph, &[Config::EdgeNoLabel]))
 }
@@ -22,7 +22,7 @@ fn build_graph<'a>(
         ASTNode::Variable(name) => format!("Variable({})", name),
         ASTNode::Number(value) => format!("Number({})", value),
         ASTNode::BuiltInFunctionCall { name, .. } => format!("FunctionCall({:#?})", name),
-        ASTNode::If { .. } => "If".to_string(),
+        ASTNode::Conditional { .. } => "Conditional".to_string(),
         ASTNode::While { .. } => "While".to_string(),
         // ... add other ASTNode variants as needed
         _ => format!("{:?}", node), // Default representation
@@ -47,24 +47,44 @@ fn build_graph<'a>(
             build_graph(graph, &**left, Some(node_idx));
             build_graph(graph, &**right, Some(node_idx));
         }
-        ASTNode::If {
-            condition,
-            body,
+        ASTNode::Conditional {
+            branches,
             else_body,
         } => {
-            build_graph(graph, &**condition, Some(node_idx));
-            build_graph(graph, &**body, Some(node_idx));
+            for (index, (condition, body)) in branches.iter().enumerate() {
+                let branch_label = if index == 0 { "if" } else { "elif" };
+                let branch_idx = graph.add_node(branch_label.to_string());
+                graph.add_edge(node_idx, branch_idx, "branch");
+
+                let condition_idx = graph.add_node("Condition".to_string());
+                graph.add_edge(branch_idx, condition_idx, "Condition");
+                build_graph(graph, &**condition, Some(condition_idx));
+
+                let body_idx = graph.add_node("Body".to_string());
+                graph.add_edge(branch_idx, body_idx, "Body");
+                build_graph(graph, &**body, Some(body_idx));
+            }
+
             if let Some(else_body) = else_body {
-                build_graph(graph, &**else_body, Some(node_idx));
+                let else_idx = graph.add_node("else".to_string());
+                graph.add_edge(node_idx, else_idx, "branch");
+                build_graph(graph, &**else_body, Some(else_idx));
             }
         }
         ASTNode::While { condition, body } => {
-            build_graph(graph, &**condition, Some(node_idx));
-            build_graph(graph, &**body, Some(node_idx));
+            let condition_idx = graph.add_node("Condition".to_string());
+            graph.add_edge(node_idx, condition_idx, "Condition");
+            build_graph(graph, &**condition, Some(condition_idx));
+
+            let body_idx = graph.add_node("Body".to_string());
+            graph.add_edge(node_idx, body_idx, "Body");
+            build_graph(graph, &**body, Some(body_idx));
         }
         ASTNode::BuiltInFunctionCall { args, .. } => {
+            let args_idx = graph.add_node("Args".to_string());
+            graph.add_edge(node_idx, args_idx, "Args");
             for arg in args {
-                build_graph(graph, arg, Some(node_idx));
+                build_graph(graph, &arg, Some(args_idx));
             }
         }
         ASTNode::Assign { name: _, value } => {

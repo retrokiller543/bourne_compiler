@@ -17,8 +17,8 @@ $$
 \text{if\_statement} & \to \text{"if"} \, \text{expression} "\{" \, \text{statement}* "\}" \\
 & \left( \text{"else"} "\{" \, \text{statement}* "\}" \right)? \\
 \text{while\_loop} & \to \text{"while"} \, \text{expression} "\{" \, \text{statement}* "\}" \\
-\text{expression} & \to \text{term} \left( ("+" | "-") \, \text{term} \right)* \\
-\text{term} & \to \text{factor} \left( ("*" | "/") \, \text{factor} \right)* \\
+\text{expression} & \to \text{term} \, (("+" | "-" | "<" | "<=" | ">" | ">=") \, \text{term})* \\
+\text{term} & \to \text{factor} \left( ("*" | "/" | "\%") \, \text{factor} \right)* \\
 \text{factor} & \to "(" \, \text{expression} ")" \\
 & | "-" \, \text{factor} \\
 & | \text{Number} \\
@@ -29,9 +29,7 @@ $$
 \end{align*}
 $$
 
-*If the LaTeX fails to load*
-
-![Current Grammer](./images/current_grammer.svg)
+*If the LaTeX fails to load, please copy the LaTeX code above and paste it in this [Website](http://www.texrendr.com/)*
 
 ---
 
@@ -71,9 +69,6 @@ $$
 \end{align*}
 $$
 
-*If the LaTeX fails to load*
-
-![Current Grammer](./images/future_grammer.svg)
-
+*If the LaTeX fails to load, please copy the LaTeX code above and paste it in this [Website](http://www.texrendr.com/)*
 
 ---

@@ -1,0 +1,9 @@
+let value = 9;
+
+if value < 8 {
+    print("less than 8");
+} elif value > 8 {
+    print("Greater than 8");
+}  else {
+    print("Equal to 8");
+};
