@@ -4,7 +4,7 @@ use petgraph::graph::NodeIndex;
 use petgraph::Graph;
 
 pub fn visualize_ast(ast: &ASTNode) -> String {
-    let mut graph = Graph::<String, &str>::new(); // <-- Change node type to String
+    let mut graph = Graph::<String, &str>::new();
     build_graph(&mut graph, ast, None);
     format!("{:?}", Dot::with_config(&graph, &[Config::EdgeNoLabel]))
 }

@@ -59,10 +59,14 @@ fn main() {
                 let mut parser = Parser::new(tokens);
                 match parser.parse() {
                     Ok(ast) => {
+                        // Generate the Bash code from the AST.
+                        let mut bash_code = "#!/bin/bash\n\n".to_string();
+                        bash_code += &ast.to_bash();
+
+                        // Determine where to write the Bash output based on compile mode.
                         #[cfg(debug_assertions)]
                         {
-                            // Visualize the Abstract Syntax Tree (AST) when in debug mode.
-                            let ast_visualization = ast_visualizer::visualize_ast(&ast);
+                            // Write to a file in the build directory when in debug mode.
                             let build_path = std::path::Path::new("build/dev");
                             if build_path.exists() {
                                 fs::remove_dir_all(build_path).expect("Unable to remove directory");
@@ -70,30 +74,37 @@ fn main() {
                             } else {
                                 fs::create_dir_all(build_path).expect("Unable to create directory");
                             }
-                            fs::write("build/dev/ast.dot", ast_visualization)
+
+                            let dot = ast_visualizer::visualize_ast(&ast);
+
+                            fs::write("build/dev/output_ast.dot", dot)
                                 .expect("Unable to write to file");
+
+                            fs::write("build/dev/output_script.bash", bash_code)
+                                .expect("Unable to write to file");
+                            Command::new("chmod")
+                                .arg("+x")
+                                .arg("build/dev/output_script.bash")
+                                .output()
+                                .expect("Unable to change permissions");
+                            Command::new("dot")
+                                .arg("-Tpng")
+                                .arg("build/dev/output_ast.dot")
+                                .arg("-o")
+                                .arg("build/dev/output_ast.png")
+                                .output()
+                                .expect("Unable to generate AST image");
                         }
-
-                        // Generate the Bash code from the AST.
-                        let mut bash_code = "#!/bin/bash\n\n".to_string();
-                        bash_code += &ast.to_bash();
-
-                        // Determine where to write the Bash output based on compile mode.
-                        #[cfg(debug_assertions)]
-                        fs::write("build/dev/dev.bash", bash_code)
-                            .expect("Unable to write to file");
                         #[cfg(not(debug_assertions))]
                         {
-                            let name = path.file_name().unwrap().to_str().unwrap();
-                            dbg!(name);
                             fs::write("output_script.sh", bash_code)
                                 .expect("Unable to write to file");
+                            Command::new("chmod")
+                                .arg("+x")
+                                .arg("output_script.sh")
+                                .output()
+                                .expect("Unable to change permissions");
                         }
-                        Command::new("chmod")
-                            .arg("+x")
-                            .arg("build/dev/dev.bash")
-                            .output()
-                            .expect("Unable to change permissions");
                     }
                     Err(e) => {
                         // Handle parsing errors.

@@ -184,21 +184,18 @@ merge:
 .PHONY: run
 run:
 	@cargo run -- Tests/scripts/example.bc
-	@dot -Tpng -o build/dev/output.png build/dev/ast.dot
 	@echo "¤ Compiled successfully, running..."
-	@./build/dev/dev.bash
+	@./build/dev/output_script.bash
 
 .PHONY: get-tree
 get-tree:
 	@cargo run -- Tests/scripts/dev.bc
-	@dot -Tpng -o build/dev/output.png build/dev/ast.dot
 	@echo "¤ Compiled successfully, running..."
-	@./build/dev/dev.bash
+	@./build/dev/output_script.bash
 
 .PHONY: run-own
 run-own:
 	@read -p "Enter file name: " file; \
 	cargo run -- Tests/scripts/$${file}
-	@dot -Tpng -o build/dev/output.png build/dev/ast.dot
 	@echo "¤ Compiled successfully, running..."
-	@./build/dev/dev.bash
+	@./build/dev/output_script.bash
