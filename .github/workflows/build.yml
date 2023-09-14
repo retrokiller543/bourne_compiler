@@ -113,5 +113,5 @@ jobs:
         automatic_release_tag: "v${{ env.NEW_VERSION }}"
         title: "Release v${{ env.NEW_VERSION }}"
         files: |
-          build/ubuntu/${{env.RELEASE_NAME}}-amd64.deb
-          build/macos/${{env.RELEASE_NAME}}.pkg
+          ${{env.RELEASE_NAME}}-amd64.deb
+          ${{env.RELEASE_NAME}}.pkg
