@@ -39,7 +39,7 @@ package-ubuntu:
 	@echo "Description: $(PACKAGE_DESCRIPTION)" >> build/ubuntu/$(PACKAGE_NAME)/DEBIAN/control
 	@echo "Homepage: $(PROJECT_WEBSITE)" >> build/ubuntu/$(PACKAGE_NAME)/DEBIAN/control
 	@echo "¤ Building package"
-	@dpkg-deb --build build/ubuntu/$(PACKAGE_NAME) build/ubuntu/$(PACKAGE_NAME)-$(PACKAGE_VERSION)-amd64.deb
+	@dpkg-deb --build build/ubuntu/$(PACKAGE_NAME) build/ubuntu/$(PACKAGE_NAME)-amd64.deb
 
 
 # macOS .pkg packaging

@@ -1,0 +1,119 @@
+name: Test, Build and Publish
+
+on:
+  push:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  IMAGE_NAME: "bourne_compiler"
+  RELEASE_NAME: "bourne-compiler"
+  NEW_VERSION: "v0.0.0"
+
+jobs:
+  build_and_test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Cache cargo registry
+      uses: actions/cache@v2
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-
+
+    - name: Cache cargo index
+      uses: actions/cache@v2
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-git-
+
+    - name: Cache cargo build
+      uses: actions/cache@v2
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-target-
+
+    - name: test
+      run: cargo test --all
+
+    - name: Build
+      run: cargo build --release
+
+    - name: Package the binary for ubuntu
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: make package-ubuntu
+
+    - name: Upload the binary for release job on ubuntu
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: build/ubuntu/${{env.RELEASE_NAME}}-amd64.deb
+        path: |
+          target/release/build/ubuntu/${{env.RELEASE_NAME}}-amd64.deb
+
+
+
+    - name: Package the binary for macos
+      if: ${{ matrix.os == 'macos-latest' }}
+      run: make package-macos
+
+    - name: Upload the binary for release job on macos
+      if: ${{ matrix.os == 'macos-latest' }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: build/macos/${{env.RELEASE_NAME}}.pkg
+        path: |
+          target/release/build/macos/${{env.RELEASE_NAME}}.pkg
+
+
+  publish_github_release:
+    needs: build_and_test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Download all built binaries
+      uses: actions/download-artifact@v2
+
+    - name: Increment Version and Release
+      run: |
+        chmod +x increment_version.sh
+        ./increment_version.sh
+
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GH_PAT }}"
+        prerelease: false
+        automatic_release_tag: "v${{ env.NEW_VERSION }}"
+        title: "Release v${{ env.NEW_VERSION }}"
+        files: |
+          build/ubuntu/${{env.RELEASE_NAME}}-amd64.deb
+          build/macos/${{env.RELEASE_NAME}}.pkg
