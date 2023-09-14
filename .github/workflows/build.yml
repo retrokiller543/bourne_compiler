@@ -65,7 +65,7 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' }}
       uses: actions/upload-artifact@v2
       with:
-        name: build/ubuntu/${{env.RELEASE_NAME}}-amd64.deb
+        name: ${{env.RELEASE_NAME}}-amd64.deb
         path: |
           build/ubuntu/${{env.RELEASE_NAME}}-amd64.deb
 
@@ -77,7 +77,7 @@ jobs:
       if: ${{ matrix.os == 'macos-latest' }}
       uses: actions/upload-artifact@v2
       with:
-        name: build/macos/${{env.RELEASE_NAME}}.pkg
+        name: ${{env.RELEASE_NAME}}.pkg
         path: |
           build/macos/${{env.RELEASE_NAME}}.pkg
 
