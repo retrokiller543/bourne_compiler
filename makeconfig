@@ -1,6 +1,6 @@
 BINARY_PATH=./target/release/bourne_compiler
 PACKAGE_NAME=bourne-compiler
-PACKAGE_VERSION=0.1.0
+PACKAGE_VERSION=1.0.1
 PACKAGE_MAINTAINER=Tosic.Killer emil.schutt@gmail.com
 PACKAGE_DESCRIPTION=A compiler for a new language that takes simularities from Rust syntax but compiles to bash
 PROJECT_WEBSITE=https://github.com/retrokiller543/bourne_compiler
