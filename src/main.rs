@@ -10,6 +10,8 @@
 //!
 // Path: src/main.rs
 
+#![recursion_limit = "256"]
+
 // Enables the AST visualizer when debugging is enabled.
 #[cfg(debug_assertions)]
 mod ast_visualizer;
@@ -53,6 +55,7 @@ fn main() {
                 let content = fs::read_to_string(path).expect("Unable to read file");
                 let lexer = Lexer::new(&content);
                 let tokens = lexer.lex();
+                dbg!(&tokens);
                 let mut parser = Parser::new(tokens);
                 match parser.parse() {
                     Ok(ast) => {

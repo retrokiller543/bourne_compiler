@@ -47,11 +47,6 @@ pub enum ASTNode {
     Variable(String),
     Number(i32),
     StringLiteral(String),
-    If {
-        condition: Box<ASTNode>,
-        body: Box<ASTNode>,
-        else_body: Option<Box<ASTNode>>,
-    },
     While {
         condition: Box<ASTNode>,
         body: Box<ASTNode>,
@@ -63,6 +58,10 @@ pub enum ASTNode {
     UserFunctionCall {
         name: String,
         args: Vec<ASTNode>,
+    },
+    Conditional {
+        branches: Vec<(Box<ASTNode>, Box<ASTNode>)>, // (condition, body)
+        else_body: Option<Box<ASTNode>>,
     },
     // Add other control structures as needed
 }
@@ -97,21 +96,6 @@ impl ASTNode {
             },
             ASTNode::Variable(name) => name.clone(),
             ASTNode::Number(n) => n.to_string(),
-            ASTNode::If {
-                condition,
-                body,
-                else_body,
-            } => {
-                let mut bash_code = format!(
-                    "if (( {} ));\nthen\n{}\n",
-                    condition.to_bash(),
-                    body.to_bash()
-                );
-                if let Some(else_body) = else_body {
-                    bash_code += &format!("else\n{}\n", else_body.to_bash());
-                }
-                bash_code + "fi"
-            }
             ASTNode::While { condition, body } => {
                 format!(
                     "while (( {} ));\ndo\n{}\ndone",
@@ -153,7 +137,37 @@ impl ASTNode {
                 format!("{} {}", name, args_bash)
             }
             ASTNode::StringLiteral(s) => format!("\"{}\"", s),
-            // Handle other cases as needed
+            ASTNode::Conditional {
+                branches,
+                else_body,
+            } => {
+                let mut bash_code = String::new();
+
+                for (index, (condition, body)) in branches.iter().enumerate() {
+                    match index {
+                        0 => {
+                            bash_code += &format!(
+                                "if (( {} )); then\n{}\n",
+                                condition.to_bash(),
+                                body.to_bash()
+                            )
+                        } // Handle `if`
+                        _ => {
+                            bash_code += &format!(
+                                "elif (( {} )); then\n{}\n",
+                                condition.to_bash(),
+                                body.to_bash()
+                            )
+                        } // Handle `elif`
+                    }
+                }
+
+                if let Some(else_node) = else_body {
+                    bash_code += &format!("else\n{}\n", else_node.to_bash());
+                }
+
+                bash_code + "fi"
+            } // Handle other cases as needed
         }
     }
 }
@@ -319,30 +333,48 @@ macro_rules! parse_variable_declaration {
 macro_rules! parse_if_statement {
     ($self:ident) => {
         if let Ok(Keyword::If) = parse_keyword!($self) {
+            let mut branches = Vec::new();
             let condition = $self.expression()?;
             if let Some(Token::OpenBrace) = $self.peek_next_token() {
                 $self.position += 1; // Consume OpenBrace
                 let body = $self.parse_block()?;
-                if let Some(Token::Keyword(Keyword::Else)) = $self.peek_next_token() {
-                    $self.position += 1; // Consume Else
-                    if let Some(Token::OpenBrace) = $self.peek_next_token() {
-                        $self.position += 1; // Consume OpenBrace
-                        let else_body = $self.parse_block()?;
-                        Ok(ASTNode::If {
-                            condition: Box::new(condition),
-                            body: Box::new(body),
-                            else_body: Some(Box::new(else_body)),
-                        })
-                    } else {
-                        Err("Expected '{' after 'else'".to_string())
+                branches.push((Box::new(condition), Box::new(body)));
+
+                let mut else_body: Option<Box<ASTNode>> = None;
+
+                loop {
+                    match $self.peek_next_token() {
+                        Some(Token::Keyword(Keyword::ElseIf)) => {
+                            $self.position += 1; // Consume ElseIf
+                            let else_if_condition = $self.expression()?;
+                            if let Some(Token::OpenBrace) = $self.peek_next_token() {
+                                $self.position += 1; // Consume OpenBrace
+                                let else_if_body = $self.parse_block()?;
+                                branches
+                                    .push((Box::new(else_if_condition), Box::new(else_if_body)));
+                            } else {
+                                return Err("Expected '{' after else if condition".to_string());
+                            }
+                        }
+                        Some(Token::Keyword(Keyword::Else)) => {
+                            $self.position += 1; // Consume Else
+                            if let Some(Token::OpenBrace) = $self.peek_next_token() {
+                                $self.position += 1; // Consume OpenBrace
+                                let else_block = $self.parse_block()?;
+                                else_body = Some(Box::new(else_block));
+                                break;
+                            } else {
+                                return Err("Expected '{' after 'else'".to_string());
+                            }
+                        }
+                        _ => break,
                     }
-                } else {
-                    Ok(ASTNode::If {
-                        condition: Box::new(condition),
-                        body: Box::new(body),
-                        else_body: None,
-                    })
                 }
+
+                Ok(ASTNode::Conditional {
+                    branches,
+                    else_body,
+                })
             } else {
                 Err("Expected '{' after if condition".to_string())
             }
@@ -586,7 +618,7 @@ impl Parser {
         let mut previous_ast = ast.clone();
 
         loop {
-            let optimized_ast = self.optimize(ast.clone());
+            let optimized_ast = remove_unused_variables(self.optimize(ast.clone()));
             if optimized_ast == previous_ast {
                 break;
             }
@@ -594,9 +626,8 @@ impl Parser {
             ast = optimized_ast;
         }
 
-        let clean_ast = remove_unused_variables(ast);
-        dbg!(&clean_ast);
-        Ok(clean_ast)
+        dbg!(&ast);
+        Ok(ast)
     }
 
     fn consume_optional_eol(&mut self) {

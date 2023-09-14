@@ -194,3 +194,11 @@ get-tree:
 	@dot -Tpng -o build/dev/output.png build/dev/ast.dot
 	@echo "¤ Compiled successfully, running..."
 	@./build/dev/dev.bash
+
+.PHONY: run-own
+run-own:
+	@read -p "Enter file name: " file; \
+	cargo run -- Tests/scripts/$${file}
+	@dot -Tpng -o build/dev/output.png build/dev/ast.dot
+	@echo "¤ Compiled successfully, running..."
+	@./build/dev/dev.bash
