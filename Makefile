@@ -41,14 +41,13 @@ package-ubuntu:
 	@echo "¤ Building package"
 	@dpkg-deb --build build/ubuntu/$(PACKAGE_NAME) build/ubuntu/$(PACKAGE_NAME)-amd64.deb
 
-
 # macOS .pkg packaging
 .PHONY: package-macos
 package-macos:
 	@echo "¤ Building package for macOS"
-	@mkdir -p build/macos/$(PACKAGE_NAME).pkg/usr/local/bin
-	@cp $(BINARY_PATH) build/macos/$(PACKAGE_NAME).pkg/usr/local/bin/$(PACKAGE_NAME)
-	@pkgbuild --root build/macos/$(PACKAGE_NAME).pkg --identifier com.yourdomain.$(PACKAGE_NAME) --version $(PACKAGE_VERSION) build/macos/$(PACKAGE_NAME).pkg
+	@mkdir -p build/macos/package-root/usr/local/bin
+	@cp $(BINARY_PATH) build/macos/package-root/usr/local/bin/$(PACKAGE_NAME)
+	@pkgbuild --root build/macos/package-root --identifier com.yourdomain.$(PACKAGE_NAME) --version $(PACKAGE_VERSION) build/macos/$(PACKAGE_NAME).pkg
 
 .PHONY: clean
 clean:
