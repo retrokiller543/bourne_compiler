@@ -1,3 +1,10 @@
+//  ____                                     ____                      _ _
+// | __ )  ___  _   _ _ __ _ __   ___       / ___|___  _ __ ___  _ __ (_) | ___
+// |  _ \ / _ \| | | | '__| '_ \ / _ \_____| |   / _ \| '_ ` _ \| '_ \| | |/ _ \
+// | |_) | (_) | |_| | |  | | | |  __/_____| |__| (_) | | | | | | |_) | | |  __/
+// |____/ \___/ \__,_|_|  |_| |_|\___|      \____\___/|_| |_| |_| .__/|_|_|\___|
+//                                                              |_|
+
 //! # Compiler to Bash
 //!
 //! This module serves as the main entry point for the compiler. It handles command line arguments,
@@ -47,7 +54,7 @@ struct Args {
 /// managing directories.
 fn main() {
     let args = Args::parse();
-
+    dbg!(&args);
     match args.path {
         Some(path) => {
             let path = Path::new(&path);

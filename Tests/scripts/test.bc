@@ -1,3 +1,10 @@
+let counter_var = 100;
+
+while counter_var >= 0 {
+	print(counter_var);
+	counter_var = counter_var - 1;
+};
+
 let value = 9;
 
 if value < 8 {
