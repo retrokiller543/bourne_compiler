@@ -409,8 +409,12 @@ fn remove_unused_variables(ast: ASTNode) -> ASTNode {
     let mut used_vars = HashSet::new();
     collect_used_variables(&ast, &mut used_vars);
 
+    dbg!(&used_vars);
     // Step 2: Filter out unused assignments
-    filter_unused_assignments(ast, &used_vars).unwrap()
+    let tmp = filter_unused_assignments(ast, &used_vars).unwrap();
+
+    dbg!(&tmp);
+    tmp
 }
 
 fn collect_used_variables(node: &ASTNode, used_vars: &mut HashSet<String>) {
@@ -435,23 +439,35 @@ fn collect_used_variables(node: &ASTNode, used_vars: &mut HashSet<String>) {
                 collect_used_variables(arg, used_vars);
             }
         }
+        ASTNode::Statement(inner) => {
+            match &**inner {
+                ASTNode::Assign {value, .. } => {
+                    collect_used_variables(value, used_vars);
+                }
+                _ => collect_used_variables(&*inner, used_vars),
+            }
+        }
         // Handle other node types as necessary
         _ => {}
     }
 }
 
 fn filter_unused_assignments(node: ASTNode, used_vars: &HashSet<String>) -> Option<ASTNode> {
-    match node {
+    dbg!("Entering filter_unused_assignments", &node);
+
+    let result = match node {
         ASTNode::Program(statements) => {
             let filtered_statements: Vec<ASTNode> = statements
                 .into_iter()
                 .filter_map(|stmt| {
-                    if let ASTNode::Assign { name, value } = &stmt {
-                        if !used_vars.contains(name) && !is_variable_used_in_ast(value, name) {
+                    if let ASTNode::Assign { name, .. } = &stmt {
+                        if !used_vars.contains(name) {
+                            dbg!("Filtering out unused assignment:", name);
                             return None; // Filter out unused assignments
                         }
+                        return filter_unused_assignments(stmt, used_vars);
                     }
-                    filter_unused_assignments(stmt, used_vars)
+                    Some(stmt)
                 })
                 .collect();
             Some(ASTNode::Program(filtered_statements))
@@ -465,7 +481,10 @@ fn filter_unused_assignments(node: ASTNode, used_vars: &HashSet<String>) -> Opti
         }
         // ... handle other cases
         _ => Some(node),
-    }
+    };
+
+    dbg!("Exiting filter_unused_assignments", &result);
+    result
 }
 
 fn is_variable_used_in_ast(node: &ASTNode, var_name: &str) -> bool {
@@ -481,6 +500,7 @@ fn is_variable_used_in_ast(node: &ASTNode, var_name: &str) -> bool {
         ASTNode::BuiltInFunctionCall { args, .. } | ASTNode::UserFunctionCall { args, .. } => args
             .iter()
             .any(|arg| is_variable_used_in_ast(arg, var_name)),
+        ASTNode::Statement(inner) => is_variable_used_in_ast(&*inner, var_name),
         // Handle other node types as necessary
         _ => false,
     }
@@ -626,7 +646,6 @@ impl Parser {
             ast = optimized_ast;
         }
 
-        dbg!(&ast);
         Ok(ast)
     }
 

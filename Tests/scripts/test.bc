@@ -1,15 +1,8 @@
-let counter_var = 100;
+let value = "hi";
 
-while counter_var >= 0 {
-	print(counter_var);
-	counter_var = counter_var - 1;
-};
-
-let value = 9;
-
-if value < 8 {
+if value < "hi" {
     print("less than 8");
-} elif value > 8 {
+} elif value > "hi" {
     print("Greater than 8");
 }  else {
     print("Equal to 8");
